@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-scaler-secret
+  namespace: pets
+data:
+  host: aHR0cDovL3VzZXJuYW1lOnBhc3N3b3JkQHJhYmJpdG1xLnBldHMuc3ZjLmNsdXN0ZXIubG9jYWw6MTU2NzI=
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: trigger-auth-rabbitmq-conn
+  namespace: pets
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: rabbitmq-scaler-secret
+      key: host
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: virtual-worker-rabbitmq-scaledobject
+  namespace: pets
+spec:
+  scaleTargetRef:
+    name: virtual-worker
+  pollingInterval: 60
+  minReplicaCount: 1
+  triggers:
+    - type: rabbitmq
+      metadata:
+        protocol: http
+        queueName: orders
+        mode: QueueLength
+        value: "10"
+      authenticationRef:
+        name: trigger-auth-rabbitmq-conn

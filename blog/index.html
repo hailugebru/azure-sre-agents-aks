@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Autonomous AKS Incident Response with Azure SRE Agent | Microsoft Tech Community</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ms-blue: #0078d4;
+    --ms-dark-blue: #004578;
+    --ms-light-blue: #deecf9;
+    --ms-accent: #00b7c3;
+    --ms-green: #107c10;
+    --ms-red: #d13438;
+    --ms-orange: #ff8c00;
+    --ms-bg: #f5f5f5;
+    --ms-card-bg: #ffffff;
+    --ms-text: #323130;
+    --ms-text-secondary: #605e5c;
+    --ms-border: #edebe9;
+    --ms-code-bg: #1e1e1e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--ms-bg); color: var(--ms-text); line-height: 1.7; font-size: 16px; }
+
+  /* ── Header ─────────────────────────────────────── */
+  .ms-header { background: #1b1a19; padding: 10px 0; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--ms-blue); }
+  .ms-header-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 16px; }
+  .ms-logo { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 15px; font-weight: 600; text-decoration: none; }
+  .ms-logo-grid { display: grid; grid-template-columns: 10px 10px; grid-template-rows: 10px 10px; gap: 2px; }
+  .ms-logo-grid span:nth-child(1) { background: #f25022; }
+  .ms-logo-grid span:nth-child(2) { background: #7fba00; }
+  .ms-logo-grid span:nth-child(3) { background: #00a4ef; }
+  .ms-logo-grid span:nth-child(4) { background: #ffb900; }
+  .ms-header-nav { color: #ccc; font-size: 13px; display: flex; gap: 20px; margin-left: auto; }
+  .ms-header-nav a { color: #ccc; text-decoration: none; }
+  .ms-header-nav a:hover { color: #fff; }
+
+  /* ── Hero ────────────────────────────────────────── */
+  .hero { background: linear-gradient(135deg, #0078d4 0%, #004578 60%, #002050 100%); color: white; padding: 72px 24px 64px; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; top: -50%; right: -20%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(0,183,195,0.15) 0%, transparent 70%); pointer-events: none; }
+  .hero-inner { max-width: 880px; margin: 0 auto; position: relative; z-index: 1; }
+  .hero-tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(4px); color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; padding: 6px 14px; border-radius: 4px; margin-bottom: 24px; }
+  .hero h1 { font-size: 36px; font-weight: 700; line-height: 1.25; margin-bottom: 20px; max-width: 740px; }
+  .hero-sub { font-size: 18px; font-weight: 300; opacity: 0.9; max-width: 680px; margin-bottom: 24px; line-height: 1.6; }
+  .hero-meta { display: flex; align-items: center; gap: 24px; font-size: 14px; opacity: 0.85; flex-wrap: wrap; }
+
+  /* ── Layout ──────────────────────────────────────── */
+  .content-wrapper { max-width: 920px; margin: -32px auto 48px; padding: 0 24px; position: relative; z-index: 2; }
+  article { background: var(--ms-card-bg); border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 48px 56px; }
+  @media (max-width: 768px) { article { padding: 28px 20px; } .hero h1 { font-size: 24px; } }
+
+  /* ── TOC ─────────────────────────────────────────── */
+  .toc { background: #f0f6ff; border: 1px solid #c8ddf5; border-radius: 8px; padding: 24px 28px; margin: 0 0 40px; }
+  .toc h3 { font-size: 15px; font-weight: 600; color: var(--ms-dark-blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .toc ol { margin: 0 0 0 20px; padding: 0; }
+  .toc li { margin-bottom: 6px; font-size: 14px; }
+  .toc a { color: var(--ms-blue); text-decoration: none; font-weight: 500; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── Section dividers ────────────────────────────── */
+  .part-divider { display: flex; align-items: center; gap: 16px; margin: 56px 0 8px; padding: 16px 0; }
+  .part-badge { background: var(--ms-blue); color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; padding: 5px 14px; border-radius: 4px; white-space: nowrap; }
+  .part-line { flex: 1; height: 2px; background: linear-gradient(90deg, var(--ms-light-blue), transparent); }
+
+  /* ── Typography ──────────────────────────────────── */
+  article h2 { font-size: 26px; font-weight: 700; color: var(--ms-dark-blue); margin: 12px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--ms-light-blue); }
+  article h3 { font-size: 20px; font-weight: 600; color: var(--ms-text); margin: 32px 0 12px; }
+  article h4 { font-size: 16px; font-weight: 600; color: var(--ms-text); margin: 24px 0 8px; }
+  article p { margin-bottom: 16px; }
+  article a { color: var(--ms-blue); text-decoration: none; }
+  article a:hover { text-decoration: underline; }
+  article ul, article ol { margin: 0 0 16px 24px; }
+  article li { margin-bottom: 8px; }
+  strong { font-weight: 600; }
+
+  /* ── Alerts ──────────────────────────────────────── */
+  .alert { display: flex; align-items: flex-start; gap: 14px; border-left: 4px solid var(--ms-orange); border-radius: 4px; padding: 18px 20px; margin: 24px 0; background: #fef6f0; }
+  .alert.info { background: #f0f6ff; border-left-color: var(--ms-blue); }
+  .alert.success { background: #f0faf0; border-left-color: var(--ms-green); }
+  .alert.warning { background: #fff4ce; border-left-color: var(--ms-orange); }
+  .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .alert-content { font-size: 14px; line-height: 1.6; }
+  .alert-content strong { display: block; margin-bottom: 4px; font-size: 15px; }
+
+  /* ── Code ────────────────────────────────────────── */
+  pre { background: var(--ms-code-bg); color: #d4d4d4; border-radius: 6px; padding: 20px 24px; overflow-x: auto; font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; font-size: 13.5px; line-height: 1.6; margin: 16px 0 24px; }
+  pre .comment { color: #6a9955; }
+  pre .keyword { color: #569cd6; }
+  pre .string { color: #ce9178; }
+  pre .number { color: #b5cea8; }
+  pre .prompt { color: #6a9955; user-select: none; }
+  pre .output { color: #9cdcfe; }
+  pre .success { color: #4ec9b0; }
+  pre .error { color: #f48771; }
+  code { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: #f3f2f1; padding: 2px 6px; border-radius: 3px; font-size: 14px; color: #a31515; }
+
+  /* ── Tables ──────────────────────────────────────── */
+  .table-wrapper { overflow-x: auto; margin: 16px 0 24px; border-radius: 6px; border: 1px solid var(--ms-border); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead { background: #f3f2f1; }
+  th { text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 2px solid var(--ms-border); }
+  td { padding: 10px 16px; border-bottom: 1px solid var(--ms-border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: #faf9f8; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; line-height: 1.6; }
+  .badge-red { background: #fde7e9; color: #a4262c; }
+  .badge-green { background: #dff6dd; color: #107c10; }
+  .badge-blue { background: var(--ms-light-blue); color: var(--ms-dark-blue); }
+  .badge-orange { background: #fff4ce; color: #8a6914; }
+
+  /* ── Architecture diagram ────────────────────────── */
+  .arch { background: #faf9f8; border: 1px solid var(--ms-border); border-radius: 8px; padding: 32px 24px; margin: 24px 0; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .arch-box { background: white; border: 2px solid var(--ms-border); border-radius: 8px; padding: 16px 20px; text-align: center; min-width: 130px; }
+  .arch-box.highlight { border-color: var(--ms-blue); background: var(--ms-light-blue); }
+  .arch-box .icon { font-size: 28px; margin-bottom: 8px; }
+  .arch-box .label { font-size: 13px; font-weight: 600; color: var(--ms-text); }
+  .arch-box .sublabel { font-size: 11px; color: var(--ms-text-secondary); margin-top: 2px; }
+  .arch-arrow { font-size: 24px; color: var(--ms-blue); font-weight: 700; }
+
+  /* ── Comparison cards ────────────────────────────── */
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 24px 0; }
+  @media (max-width: 600px) { .comparison { grid-template-columns: 1fr; } }
+  .comparison-card { border-radius: 8px; padding: 24px; border: 1px solid var(--ms-border); }
+  .comparison-card.before { background: #fdf3f4; border-color: #f3d6d8; }
+  .comparison-card.after { background: #f0faf0; border-color: #c8e6c8; }
+  .comparison-card h4 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+  .comparison-card.before h4 { color: var(--ms-red); }
+  .comparison-card.after h4 { color: var(--ms-green); }
+  .comparison-card ul { list-style: none; margin: 0; padding: 0; }
+  .comparison-card li { padding: 6px 0; font-size: 14px; display: flex; align-items: flex-start; gap: 8px; }
+  .comparison-card.before li::before { content: '\2717'; color: var(--ms-red); font-weight: 700; flex-shrink: 0; }
+  .comparison-card.after li::before { content: '\2713'; color: var(--ms-green); font-weight: 700; flex-shrink: 0; }
+
+  /* ── Metrics row ─────────────────────────────────── */
+  .metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+  @media (max-width: 600px) { .metrics-row { grid-template-columns: 1fr; } }
+  .metric-card { background: #faf9f8; border: 1px solid var(--ms-border); border-radius: 8px; padding: 20px; text-align: center; }
+  .metric-value { font-size: 36px; font-weight: 700; color: var(--ms-blue); line-height: 1; margin-bottom: 6px; }
+  .metric-label { font-size: 13px; color: var(--ms-text-secondary); font-weight: 500; }
+
+  /* ── Timeline ────────────────────────────────────── */
+  .timeline { position: relative; padding-left: 36px; margin: 24px 0 32px; }
+  .timeline::before { content: ''; position: absolute; left: 13px; top: 8px; bottom: 8px; width: 2px; background: var(--ms-light-blue); }
+  .timeline-step { position: relative; margin-bottom: 28px; }
+  .timeline-step:last-child { margin-bottom: 0; }
+  .timeline-dot { position: absolute; left: -36px; top: 4px; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; z-index: 1; }
+  .timeline-dot.blue { background: var(--ms-blue); }
+  .timeline-dot.green { background: var(--ms-green); }
+  .timeline-dot.red { background: var(--ms-red); }
+  .timeline-step .step-time { font-size: 12px; color: var(--ms-blue); font-weight: 600; margin-bottom: 4px; }
+  .timeline-step h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .timeline-step p { font-size: 14px; color: var(--ms-text-secondary); margin-bottom: 0; }
+
+  /* ── Step list (numbered setup steps) ───────────── */
+  .step-list { counter-reset: step; list-style: none; margin: 0 0 24px; padding: 0; }
+  .step-list li { counter-increment: step; display: flex; gap: 16px; margin-bottom: 20px; }
+  .step-list li::before { content: counter(step); background: var(--ms-blue); color: white; font-size: 13px; font-weight: 700; min-width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .step-body { flex: 1; }
+  .step-body strong { display: block; font-size: 15px; margin-bottom: 4px; }
+  .step-body p { font-size: 14px; color: var(--ms-text-secondary); margin: 0; }
+
+  /* ── CTA ─────────────────────────────────────────── */
+  .cta { background: linear-gradient(135deg, #0078d4, #004578); color: white; border-radius: 8px; padding: 36px 40px; margin: 40px 0 0; text-align: center; }
+  .cta h3 { color: white; font-size: 22px; margin-bottom: 12px; border: none; padding: 0; }
+  .cta p { color: rgba(255,255,255,0.85); margin-bottom: 20px; max-width: 560px; margin-left: auto; margin-right: auto; }
+  .cta-links { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .cta-btn { display: inline-block; background: white; color: var(--ms-blue); font-weight: 600; font-size: 15px; padding: 12px 28px; border-radius: 4px; text-decoration: none; }
+  .cta-btn.secondary { background: transparent; color: white; border: 2px solid rgba(255,255,255,0.6); }
+  .cta-btn:hover { opacity: 0.9; }
+
+  /* ── Author card ─────────────────────────────────── */
+  .author-card { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: #faf9f8; border: 1px solid var(--ms-border); border-radius: 8px; margin-bottom: 32px; }
+  .author-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--ms-blue); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 600; flex-shrink: 0; }
+  .author-info .name { font-size: 15px; font-weight: 600; }
+  .author-info .role { font-size: 13px; color: var(--ms-text-secondary); }
+
+  caption.fig { display: block; font-size: 13px; color: var(--ms-text-secondary); font-style: italic; text-align: center; margin-top: -16px; margin-bottom: 24px; }
+  .footer { text-align: center; padding: 32px 24px; font-size: 13px; color: var(--ms-text-secondary); }
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────── -->
+<nav class="ms-header">
+  <div class="ms-header-inner">
+    <a href="#" class="ms-logo">
+      <div class="ms-logo-grid"><span></span><span></span><span></span><span></span></div>
+      Microsoft
+    </a>
+    <div class="ms-header-nav">
+      <a href="https://techcommunity.microsoft.com">Tech Community</a>
+      <a href="https://azure.microsoft.com/blog/">Azure Blog</a>
+      <a href="https://learn.microsoft.com/azure/sre-agent/">Documentation</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-inner">
+    <span class="hero-tag">Azure SRE Agent &middot; AKS &middot; AI Ops</span>
+    <h1>Autonomous AKS Incident Response with Azure SRE Agent</h1>
+    <p class="hero-sub">
+      A complete hands-on walkthrough: deploy a NAP-enabled AKS cluster, configure Azure SRE Agent
+      with Azure Monitor triggers and an incident response plan, and see the agent autonomously resolve
+      a real Sev1 OOMKilled pod crash &mdash; in under two minutes.
+    </p>
+    <div class="hero-meta">
+      <span>&#x1F4C5; April 7, 2026</span>
+      <span>&#x1F464; Hailu Gebru &mdash; Azure SRE Agent Engineering</span>
+      <span>&#x1F550; 15 min read</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Content ─────────────────────────────────────────────────── -->
+<div class="content-wrapper">
+<article>
+
+<!-- Author -->
+<div class="author-card">
+  <div class="author-avatar">HG</div>
+  <div class="author-info">
+    <div class="name">Hailu Gebru</div>
+    <div class="role">Product Manager, Azure SRE Agent &mdash; Microsoft</div>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h3>In This Article</h3>
+  <ol>
+    <li><a href="#intro">Introduction &mdash; The Problem Azure SRE Agent Solves</a></li>
+    <li><a href="#architecture">Solution Architecture</a></li>
+    <li><a href="#prereqs">Prerequisites &amp; Demo Repo</a></li>
+    <li><a href="#cluster">Step 1 &mdash; Deploy an AKS Cluster with NAP</a></li>
+    <li><a href="#app">Step 2 &mdash; Deploy the AKS Store Demo App</a></li>
+    <li><a href="#agent-setup">Step 3 &mdash; Configure Azure SRE Agent</a></li>
+    <li><a href="#in-action">Step 4 &mdash; See It in Action: Autonomous OOMKilled Recovery</a></li>
+    <li><a href="#nap">Bonus: Node Auto-Provisioning in Action</a></li>
+    <li><a href="#next-steps">Next Steps &amp; Resources</a></li>
+  </ol>
+</div>
+
+<!-- ================================================================ -->
+<!--  INTRODUCTION                                                     -->
+<!-- ================================================================ -->
+<h2 id="intro">Introduction &mdash; The Problem Azure SRE Agent Solves</h2>
+
+<p>It's 2 AM. Azure Monitor fires a Sev1 alert: pods are crashing in your production AKS cluster. The traditional playbook kicks in &mdash; an on-call engineer is paged, logs in, runs a series of diagnostic commands, figures out the root cause, applies a fix, and verifies recovery. By the time that's done, <strong>30 to 60 minutes have passed</strong>.</p>
+
+<p>For teams running containerized workloads on Azure Kubernetes Service (AKS), this manual response cycle is a source of alert fatigue, slow recovery times, and inconsistent remediation quality. <strong>Azure SRE Agent</strong> addresses this head-on: it is an AI-powered operations agent that connects to your Azure resources, receives alerts from Azure Monitor, and executes a structured investigate-diagnose-remediate-verify loop &mdash; fully autonomously.</p>
+
+<p>In this post, I'll walk through the complete end-to-end experience: spinning up an AKS cluster with Node Auto-Provisioning (NAP), deploying a realistic demo application, wiring up Azure SRE Agent, and triggering a real OOMKilled incident so you can see the agent resolve it in real time.</p>
+
+<div class="metrics-row">
+  <div class="metric-card">
+    <div class="metric-value">&lt;2m</div>
+    <div class="metric-label">Alert to Full Recovery</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-value">0</div>
+    <div class="metric-label">Human Interventions Required</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-value">100%</div>
+    <div class="metric-label">Pods Recovered Automatically</div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!--  ARCHITECTURE                                                     -->
+<!-- ================================================================ -->
+<div class="part-divider"><span class="part-badge">Architecture</span><span class="part-line"></span></div>
+<h2 id="architecture">Solution Architecture</h2>
+
+<p>The demo environment brings together three layers: the AKS cluster (with NAP/Karpenter for intelligent node provisioning), the AKS Store Demo application (a realistic microservices workload), and the Azure SRE Agent wired to Azure Monitor.</p>
+
+<div class="arch">
+  <div class="arch-box">
+    <div class="icon">&#x1F4CA;</div>
+    <div class="label">Azure Monitor</div>
+    <div class="sublabel">Metric alert rules</div>
+  </div>
+  <span class="arch-arrow">&rarr;</span>
+  <div class="arch-box">
+    <div class="icon">&#x1F514;</div>
+    <div class="label">Action Group</div>
+    <div class="sublabel">Alert routing webhook</div>
+  </div>
+  <span class="arch-arrow">&rarr;</span>
+  <div class="arch-box highlight">
+    <div class="icon">&#x1F916;</div>
+    <div class="label">Azure SRE Agent</div>
+    <div class="sublabel">Investigate &rarr; Fix &rarr; Verify</div>
+  </div>
+  <span class="arch-arrow">&rarr;</span>
+  <div class="arch-box">
+    <div class="icon">&#x2638;&#xFE0F;</div>
+    <div class="label">AKS Cluster</div>
+    <div class="sublabel">NAP + Cilium + KEDA</div>
+  </div>
+</div>
+
+<div class="table-wrapper">
+<table>
+  <thead><tr><th>Component</th><th>Technology</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Cluster networking</strong></td><td>Azure CNI Overlay + Cilium dataplane</td><td>eBPF-based networking; no kube-proxy</td></tr>
+    <tr><td><strong>Node provisioning</strong></td><td>NAP / Karpenter</td><td>Automatically provisions right-sized nodes</td></tr>
+    <tr><td><strong>Autoscaling</strong></td><td>KEDA</td><td>Scales <code>virtual-worker</code> on RabbitMQ queue depth</td></tr>
+    <tr><td><strong>Monitoring trigger</strong></td><td>Azure Monitor metric alert</td><td>Fires on unhealthy pod count &gt; 0</td></tr>
+    <tr><td><strong>AI agent</strong></td><td>Azure SRE Agent</td><td>Autonomous incident investigation and remediation</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================================ -->
+<!--  PREREQUISITES                                                    -->
+<!-- ================================================================ -->
+<div class="part-divider"><span class="part-badge">Prerequisites</span><span class="part-line"></span></div>
+<h2 id="prereqs">Prerequisites &amp; Demo Repo</h2>
+
+<p>All scripts for this walkthrough are available in the companion GitHub repository:</p>
+
+<div class="alert info">
+  <span class="alert-icon">&#x1F4E6;</span>
+  <div class="alert-content">
+    <strong>Demo Repository</strong>
+    <a href="https://github.com/hailugebru/azure-sre-agents-aks" target="_blank">github.com/hailugebru/azure-sre-agents-aks</a>
+    &mdash; PowerShell scripts, Kubernetes manifests, and KEDA ScaledObject configurations.
+  </div>
+</div>
+
+<p><strong>You will need:</strong></p>
+<ul>
+  <li>An Azure subscription with permission to create AKS clusters</li>
+  <li><a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a> (v2.56+) with the <code>aks-preview</code> extension</li>
+  <li><a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> and PowerShell 7+</li>
+  <li>Azure SRE Agent access (currently in preview &mdash; see the <a href="https://learn.microsoft.com/azure/sre-agent/">docs</a> to request access)</li>
+</ul>
+
+<p>Clone the repo, open the <code>azure-sre-agents-aks</code> folder, and update <code>00-variables.ps1</code> with your subscription ID before running any scripts.</p>
+
+<pre><span class="prompt">$ </span>git clone https://github.com/hailugebru/azure-sre-agents-aks
+<span class="prompt">$ </span>cd azure-sre-agents-aks
+
+<span class="comment"># Edit subscription ID</span>
+<span class="prompt">$ </span>notepad 00-variables.ps1</pre>
+
+<!-- ================================================================ -->
+<!--  STEP 1: CLUSTER                                                  -->
+<!-- ================================================================ -->
+<div class="part-divider"><span class="part-badge">Step 1</span><span class="part-line"></span></div>
+<h2 id="cluster">Deploy an AKS Cluster with Node Auto-Provisioning</h2>
+
+<p>The cluster is configured with <strong>Node Auto-Provisioning (NAP)</strong> &mdash; AKS's Karpenter-based node provisioner &mdash; combined with Azure CNI Overlay and the Cilium eBPF dataplane. This combination gives you efficient, just-in-time node scaling alongside modern, high-performance networking.</p>
+
+<h3>Register the preview feature and create the cluster</h3>
+
+<p>Run the prerequisite script to register the <code>NodeAutoProvisioningPreview</code> feature flag (this can take 5&ndash;15 minutes), then create the cluster:</p>
+
+<pre><span class="comment"># Step 1: Load variables into your session</span>
+<span class="prompt">PS&gt; </span>. .\00-variables.ps1
+
+<span class="comment"># Step 2: Register preview features and install aks-preview extension</span>
+<span class="prompt">PS&gt; </span>.\01-prerequisites.ps1
+
+<span class="comment"># Step 3: Create the cluster (~5-10 minutes)</span>
+<span class="prompt">PS&gt; </span>.\02-create-cluster.ps1</pre>
+
+<p>The cluster creation command under the hood:</p>
+
+<pre><span class="keyword">az</span> aks create <span class="string">`</span>
+  --name <span class="string">"Azure-SRE-Agent-Demo-Cluster"</span> <span class="string">`</span>
+  --resource-group <span class="string">"Azure-SRE-Agent-Demo_RG"</span> <span class="string">`</span>
+  --node-provisioning-mode Auto <span class="string">           </span><span class="comment"># enables NAP/Karpenter</span>
+  --network-plugin azure <span class="string">`</span>
+  --network-plugin-mode overlay <span class="string">`</span>
+  --network-dataplane cilium <span class="string">              </span><span class="comment"># eBPF — no kube-proxy</span>
+  --generate-ssh-keys</pre>
+
+<div class="alert info">
+  <span class="alert-icon">&#x1F4A1;</span>
+  <div class="alert-content">
+    <strong>Why Cilium?</strong>
+    The <code>--network-dataplane cilium</code> flag replaces the legacy iptables/kube-proxy stack with eBPF programs that run directly in the Linux kernel. The result is lower CPU overhead for services with many endpoints, native network policy enforcement, and better observability via Hubble. This is Microsoft's recommended long-term networking configuration for AKS.
+  </div>
+</div>
+
+<h3>Taint the system node pool to activate NAP</h3>
+
+<p>By default, NAP only provisions nodes for workloads that can't be scheduled. To make NAP active for the demo app, we taint the system node pool so app pods get evicted and NAP must provision new user nodes:</p>
+
+<pre><span class="prompt">PS&gt; </span>.\04-setup-nap.ps1
+
+<span class="comment"># Watch NAP provision nodes in real time</span>
+<span class="prompt">PS&gt; </span>kubectl get events -A --field-selector source=karpenter -w
+<span class="prompt">PS&gt; </span>kubectl get nodes,pods -n pets -o wide -w</pre>
+
+<!-- ================================================================ -->
+<!--  STEP 2: APP                                                      -->
+<!-- ================================================================ -->
+<div class="part-divider"><span class="part-badge">Step 2</span><span class="part-line"></span></div>
+<h2 id="app">Deploy the AKS Store Demo Application</h2>
+
+<p>The <a href="https://github.com/Azure-Samples/aks-store-demo">AKS Store Demo</a> is a reference microservices application purpose-built for AKS demos. It models a pet store with nine components running in the <code>pets</code> namespace:</p>
+
+<div class="table-wrapper">
+<table>
+  <thead><tr><th>Service</th><th>Technology</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td><code>mongodb</code></td><td>MongoDB 6</td><td>Product catalogue persistence</td></tr>
+    <tr><td><code>rabbitmq</code></td><td>RabbitMQ 3</td><td>Order queue broker</td></tr>
+    <tr><td><code>order-service</code></td><td>Node.js / Fastify</td><td>Accepts and queues orders</td></tr>
+    <tr><td><code>makeline-service</code></td><td>Go / Gin</td><td>Processes orders from queue</td></tr>
+    <tr><td><code>product-service</code></td><td>Rust / Actix</td><td>Product catalogue API</td></tr>
+    <tr><td><code>store-front</code></td><td>Vue.js / nginx</td><td>Customer-facing storefront</td></tr>
+    <tr><td><code>store-admin</code></td><td>Vue.js / nginx</td><td>Admin dashboard</td></tr>
+    <tr><td><code>virtual-customer</code></td><td>Node.js</td><td>Simulates customer orders</td></tr>
+    <tr><td><code>virtual-worker</code></td><td>Node.js</td><td>Processes orders (scaled by KEDA)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Manifests are vendored locally in the repo under <code>manifests/aks-store/</code> for easy customization. Deploy with:</p>
+
+<pre><span class="prompt">PS&gt; </span>.\03-deploy-app.ps1
+
+<span class="comment"># Verify all pods are Running</span>
+<span class="prompt">PS&gt; </span>kubectl get pods -n pets
+
+<span class="output">NAME                                READY   STATUS    RESTARTS   AGE</span>
+<span class="output">makeline-service-6b87c6f669-xr2pq   1/1     Running   0          2m</span>
+<span class="output">mongodb-0                           1/1     Running   0          2m</span>
+<span class="output">order-service-78465f5d44-fl782      1/1     Running   0          2m</span>
+<span class="output">product-service-5c94f8c7b-9q8lp     1/1     Running   0          2m</span>
+<span class="output">rabbitmq-0                          1/1     Running   0          2m</span>
+<span class="output">store-admin-6b87c4dc9d-9xklm        1/1     Running   0          2m</span>
+<span class="output">store-front-5c5f8c7db-5k2tr         1/1     Running   0          2m</span>
+<span class="output">virtual-customer-7d8f5b9c6-2nfzp    1/1     Running   0          2m</span>
+<span class="output">virtual-worker-9c6d4b87f-8m3xt      1/1     Running   0          2m</span></pre>
+
+<h3>Enable KEDA autoscaling for virtual-worker</h3>
+
+<p>Script <code>07-setup-keda-scaler.ps1</code> installs the KEDA add-on (if needed), waits for the CRDs, and deploys a <code>ScaledObject</code> that scales <code>virtual-worker</code> up when the RabbitMQ <code>orders</code> queue depth exceeds 10 messages per replica:</p>
+
+<pre><span class="prompt">PS&gt; </span>.\07-setup-keda-scaler.ps1
+
+<span class="comment"># Test KEDA scaling: increase virtual-customer replicas to flood the queue</span>
+<span class="prompt">PS&gt; </span>kubectl scale deployment virtual-customer -n pets --replicas=4
+<span class="prompt">PS&gt; </span>kubectl get deploy -n pets -w</pre>
+
+<!-- ================================================================ -->
+<!--  STEP 3: AGENT SETUP                                              -->
+<!-- ================================================================ -->
+<div class="part-divider"><span class="part-badge">Step 3</span><span class="part-line"></span></div>
+<h2 id="agent-setup">Configure Azure SRE Agent</h2>
+
+<p>With the cluster and application running, the next step is to wire up the Azure SRE Agent. There are four configuration actions:</p>
+
+<ol class="step-list">
+  <li>
+    <div class="step-body">
+      <strong>Create the Azure SRE Agent resource</strong>
+      <p>In the Azure portal, search for <em>SRE Agent</em> &rarr; <strong>+ Create</strong>. Assign it to the same resource group as your AKS cluster, give it a name (e.g., <code>aks-sre-agent</code>), and enable the <strong>system-assigned managed identity</strong>.</p>
+    </div>
+  </li>
+  <li>
+    <div class="step-body">
+      <strong>Grant RBAC to the agent's managed identity</strong>
+      <p>The agent needs read and patch permissions on the AKS cluster and monitoring resources.</p>
+    </div>
+  </li>
+  <li>
+    <div class="step-body">
+      <strong>Add your resource group as a Managed Resource</strong>
+      <p>In the agent's <em>Managed Resources</em> blade, add <code>Azure-SRE-Agent-Demo_RG</code>. This gives the agent visibility over all resources in the group &mdash; AKS cluster, Log Analytics workspace, and networking components.</p>
+    </div>
+  </li>
+  <li>
+    <div class="step-body">
+      <strong>Add an Azure Monitor trigger and configure the Incident Response Plan</strong>
+      <p>Route Sev0&ndash;Sev2 alerts to the agent via an Action Group, then set the agent's operating mode to <strong>Autonomous</strong>.</p>
+    </div>
+  </li>
+</ol>
+
+<h3>Grant RBAC roles</h3>
+
+<pre><span class="comment"># Replace the --assignee value with your agent's managed identity object ID</span>
+<span class="prompt">$ </span>az role assignment create \
+    --assignee <span class="string">"&lt;agent-managed-identity-object-id&gt;"</span> \
+    --role <span class="string">"Azure Kubernetes Service Cluster User Role"</span> \
+    --scope <span class="string">"/subscriptions/&lt;sub-id&gt;/resourcegroups/Azure-SRE-Agent-Demo_RG"</span>
+
+<span class="prompt">$ </span>az role assignment create \
+    --assignee <span class="string">"&lt;agent-managed-identity-object-id&gt;"</span> \
+    --role <span class="string">"Monitoring Reader"</span> \
+    --scope <span class="string">"/subscriptions/&lt;sub-id&gt;/resourcegroups/Azure-SRE-Agent-Demo_RG"</span></pre>
+
+<h3>Create the pod health alert rule</h3>
+
+<p>This rule fires a Sev1 alert whenever the count of failed pods on the cluster is greater than zero for five consecutive minutes:</p>
+
+<pre><span class="prompt">$ </span>az monitor metrics alert create \
+    --name <span class="string">"pod-not-healthy"</span> \
+    --resource-group <span class="string">"Azure-SRE-Agent-Demo_RG"</span> \
+    --scopes <span class="string">"/subscriptions/&lt;sub-id&gt;/.../managedclusters/Azure-SRE-Agent-Demo-Cluster"</span> \
+    --condition <span class="string">"avg kube_pod_status_phase{phase=Failed} > 0"</span> \
+    --severity <span class="number">1</span> \
+    --action <span class="string">"sre-agent-action-group"</span> \
+    --evaluation-frequency <span class="string">"1m"</span> \
+    --window-size <span class="string">"5m"</span></pre>
+
+<h3>Incident Response Plan: three operating modes</h3>
+
+<div class="table-wrapper">
+<table>
+  <thead><tr><th>Mode</th><th>Behavior</th><th>Recommended Use</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="badge badge-blue">Monitor Only</span></td>
+      <td>Investigates and produces a root cause report. Makes <strong>no changes</strong>.</td>
+      <td>Initial rollout, compliance-sensitive environments</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-orange">Guided</span></td>
+      <td>Proposes exact remediation commands. <strong>Waits for human approval</strong> before executing.</td>
+      <td>Building team confidence, moderate-severity alerts</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">Autonomous</span></td>
+      <td>Full loop: investigate &rarr; diagnose &rarr; remediate &rarr; verify &rarr; report. <strong>No approval required.</strong></td>
+      <td>Production Sev0/Sev1 where MTTR is the priority</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="alert warning">
+  <span class="alert-icon">&#x26A1;</span>
+  <div class="alert-content">
+    <strong>Recommended ramp-up approach</strong>
+    Start in <strong>Guided</strong> mode for 1&ndash;2 weeks. Review and approve the agent's proposed remediations to build operational confidence, then promote to <strong>Autonomous</strong> for Sev0/Sev1 alerts. The agent never performs destructive operations or escalates its own permissions.
+  </div>
+</div>
+
+<h3>Custom instructions for your environment</h3>
+
+<p>The Incident Response Plan supports free-text custom instructions that give the agent domain-specific context about your application. For this demo, we configure:</p>
+
+<pre><span class="comment">For AKS pod health alerts in the pets namespace:</span>
+<span class="number">1.</span> Scan all namespaces for unhealthy pods first.
+<span class="number">2.</span> Prioritise OOMKilled and CrashLoopBackOff.
+<span class="number">3.</span> For OOMKilled: correlate NODE_OPTIONS / JVM flags against container memory limits
+   before adjusting. Apply the minimum necessary increase.
+<span class="number">4.</span> After any patch, wait for rollout, then verify cluster-wide pod health.
+<span class="number">5.</span> Create a GitHub issue in the infra-ops repo with the incident summary.</pre>
+
+<!-- ================================================================ -->
+<!--  STEP 4: IN ACTION                                                -->
+<!-- ================================================================ -->
+<div class="part-divider"><span class="part-badge">Step 4</span><span class="part-line"></span></div>
+<h2 id="in-action">See It in Action: Autonomous OOMKilled Recovery</h2>
+
+<p>With everything wired up, let's trigger a real incident. We'll change the <code>order-service</code> memory limit to a value that's incompatible with its Node.js V8 heap configuration, causing it to crash repeatedly with <code>OOMKilled</code>.</p>
+
+<h3>Trigger the incident</h3>
+
+<pre><span class="comment"># Set order-service memory limit to 16Mi — incompatible with 64MB V8 heap</span>
+<span class="prompt">PS&gt; </span>kubectl patch deployment order-service -n pets --type=<span class="string">'json'</span> `
+    -p=<span class="string">'[{"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/memory","value":"16Mi"}]'</span>
+
+<span class="comment"># Watch pods enter CrashLoopBackOff</span>
+<span class="prompt">PS&gt; </span>kubectl get pods -n pets -w
+
+<span class="output">NAME                               READY   STATUS             RESTARTS   AGE</span>
+<span class="output">order-service-5f9d44b6c8-4bvsr     0/1     OOMKilled          1          12s</span>
+<span class="output">order-service-5f9d44b6c8-4bvsr     0/1     CrashLoopBackOff   2          28s</span></pre>
+
+<p>Within five minutes, Azure Monitor detects the failing pods and fires the Sev1 alert. The SRE Agent begins working immediately.</p>
+
+<h3>The agent's autonomous response &mdash; T+0s to T+107s</h3>
+
+<div class="timeline">
+  <div class="timeline-step">
+    <div class="timeline-dot blue">1</div>
+    <div class="step-time">T+0s &mdash; Plan</div>
+    <h4>Receive alert, formulate investigation plan</h4>
+    <p>Alert payload received: [Sev1] pod-not-healthy on <code>Azure-SRE-Agent-Demo-Cluster</code>. Agent builds a structured plan: scan all namespaces, prioritise OOMKilled/CrashLoopBackOff, correlate root cause, apply minimal fix, verify recovery.</p>
+  </div>
+  <div class="timeline-step">
+    <div class="timeline-dot blue">2</div>
+    <div class="step-time">T+5s &mdash; Discover</div>
+    <h4>Cluster-wide pod health scan</h4>
+    <p>Connected to the cluster via managed identity. Ran <code>kubectl get pods --all-namespaces</code> and filtered for: <code>OOMKilled</code>, <code>CrashLoopBackOff</code>, <code>ImagePullBackOff</code>, and containers with restarts &gt; 0.</p>
+  </div>
+  <div class="timeline-step">
+    <div class="timeline-dot red">3</div>
+    <div class="step-time">T+10s &mdash; Identify</div>
+    <h4>Two crashing pods found in <code>pets</code> namespace</h4>
+    <p>Identified <code>order-service-5f9d44b6c8-4bvsr</code> and <code>order-service-5f9d44b6c8-fl782</code> with 14 restarts each, <code>Last State: OOMKilled</code>.</p>
+  </div>
+  <div class="timeline-step">
+    <div class="timeline-dot red">4</div>
+    <div class="step-time">T+20s &mdash; Root Cause</div>
+    <h4>Diagnosed: V8 heap incompatible with container memory limit</h4>
+    <p>Correlated four signals: <strong>Exit Code 137</strong> (SIGKILL from cgroup OOM killer), <strong>Last State: OOMKilled</strong>, container memory limit <strong>16Mi</strong>, and environment variable <code>NODE_OPTIONS=--max-old-space-size=64</code>. The V8 heap requires 64 MB &mdash; 4&times; the container budget.</p>
+  </div>
+  <div class="timeline-step">
+    <div class="timeline-dot blue">5</div>
+    <div class="step-time">T+30s &mdash; Remediate</div>
+    <h4>Patched deployment: 16Mi &rarr; 128Mi memory limit</h4>
+    <p>Applied a minimal JSON patch to the <code>order-service</code> deployment. Triggered a zero-downtime rolling update.</p>
+  </div>
+  <div class="timeline-step">
+    <div class="timeline-dot green">6</div>
+    <div class="step-time">T+107s &mdash; Verified</div>
+    <h4>Full recovery confirmed, incident report delivered</h4>
+    <p>Both replacement pods Running 1/1, zero restarts. Cluster-wide sweep: zero unhealthy pods. Structured incident report published to the Incident History blade and a GitHub issue created in the infra-ops repo.</p>
+  </div>
+</div>
+
+<h3>Root cause signals correlated by the agent</h3>
+
+<div class="table-wrapper">
+<table>
+  <thead><tr><th>Signal</th><th>Observed Value</th><th>What It Means</th></tr></thead>
+  <tbody>
+    <tr><td>Container memory limit</td><td><span class="badge badge-red">16Mi</span></td><td>Maximum memory before Linux OOM killer terminates the process</td></tr>
+    <tr><td><code>NODE_OPTIONS</code></td><td><span class="badge badge-orange">--max-old-space-size=64</span></td><td>V8 old-generation heap capped at 64 MB &mdash; 4&times; the limit</td></tr>
+    <tr><td>Exit code</td><td><span class="badge badge-red">137</span></td><td>SIGKILL sent by cgroup OOM killer (128 + 9)</td></tr>
+    <tr><td>Pod last state</td><td><span class="badge badge-red">OOMKilled</span></td><td>Kubernetes confirmed the termination reason</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>The exact patch applied</h3>
+
+<pre><span class="comment"># Exact remediation applied by Azure SRE Agent</span>
+<span class="prompt">$ </span>kubectl patch deployment order-service -n pets --type=<span class="string">'json'</span> -p=<span class="string">'[
+    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory",   "value": "128Mi"},
+    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "64Mi"}
+  ]'</span>
+<span class="success">deployment.apps/order-service patched</span>
+
+<span class="prompt">$ </span>kubectl rollout status deployment/order-service -n pets
+<span class="success">deployment "order-service" successfully rolled out</span></pre>
+
+<h3>Before and After</h3>
+<div class="comparison">
+  <div class="comparison-card before">
+    <h4>&#x26A0; Before (Crashing)</h4>
+    <ul>
+      <li>2 pods in CrashLoopBackOff</li>
+      <li>14 restarts each, exit code 137</li>
+      <li>Memory limit: 16Mi</li>
+      <li>V8 heap configured to 64 MB (4&times; limit)</li>
+      <li>order-service unavailable to customers</li>
+    </ul>
+  </div>
+  <div class="comparison-card after">
+    <h4>&#x2705; After (Recovered)</h4>
+    <ul>
+      <li>2 pods Running 1/1, zero restarts</li>
+      <li>Memory limit: 128Mi (V8 heap fits easily)</li>
+      <li>Memory request: 64Mi</li>
+      <li>Cluster-wide: zero unhealthy pods</li>
+      <li>Total time: 1 minute 47 seconds</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Traditional response vs. Azure SRE Agent</h3>
+<div class="comparison">
+  <div class="comparison-card before">
+    <h4>Traditional On-Call Response</h4>
+    <ul>
+      <li>Alert pages on-call engineer at 2 AM</li>
+      <li>Engineer opens laptop, connects to VPN</li>
+      <li>Gets kubeconfig, scans namespaces</li>
+      <li>Reads pod events, looks up exit code 137</li>
+      <li>Decides on fix, applies patch, monitors rollout</li>
+      <li>Writes incident summary the next morning</li>
+      <li><strong>Typical MTTR: 30&ndash;60 minutes</strong></li>
+    </ul>
+  </div>
+  <div class="comparison-card after">
+    <h4>Azure SRE Agent (Autonomous Mode)</h4>
+    <ul>
+      <li>Alert received — agent starts immediately</li>
+      <li>Already authenticated via managed identity</li>
+      <li>Scans all namespaces in parallel</li>
+      <li>Correlates exit codes, specs, and env vars</li>
+      <li>Applies minimal, targeted, reversible patch</li>
+      <li>Verifies rollout and full cluster health</li>
+      <li><strong>MTTR: 1 minute 47 seconds</strong></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!--  BONUS: NAP                                                       -->
+<!-- ================================================================ -->
+<div class="part-divider"><span class="part-badge">Bonus</span><span class="part-line"></span></div>
+<h2 id="nap">Node Auto-Provisioning in Action</h2>
+
+<p>While Azure SRE Agent handles incident response, Node Auto-Provisioning (NAP) handles the infrastructure layer beneath. NAP is AKS's Karpenter integration &mdash; instead of you pre-creating node pools with fixed VM sizes, NAP observes pending pods and provisions exactly the right node size and SKU automatically.</p>
+
+<p>Scripts <code>05-arm-nodepool.ps1</code> and <code>06-arm-nodepool-v2.ps1</code> apply Karpenter <code>NodePool</code> manifests that bias node selection toward <strong>ARM64 D-family</strong> VMs on <strong>Azure Linux (CBL-Mariner)</strong> &mdash; offering up to 40% better price-performance for Node.js and Go workloads compared to equivalent x86_64 nodes.</p>
+
+<pre><span class="prompt">PS&gt; </span>.\05-arm-nodepool.ps1   <span class="comment"># apply ARM64 NodePool preference</span>
+<span class="prompt">PS&gt; </span>.\06-arm-nodepool-v2.ps1 <span class="comment"># add Azure Linux AKSNodeClass</span>
+
+<span class="comment"># Inspect NAP provisioned nodes</span>
+<span class="prompt">PS&gt; </span>kubectl get nodepool
+<span class="prompt">PS&gt; </span>kubectl describe nodepool default</pre>
+
+<!-- ================================================================ -->
+<!--  NEXT STEPS                                                       -->
+<!-- ================================================================ -->
+<div class="part-divider"><span class="part-badge">Next Steps</span><span class="part-line"></span></div>
+<h2 id="next-steps">Next Steps &amp; Resources</h2>
+
+<p>In this walkthrough, you:</p>
+<ol>
+  <li>Deployed a production-ready AKS cluster with NAP, Cilium, and KEDA</li>
+  <li>Deployed the AKS Store Demo application across nine microservices</li>
+  <li>Created an Azure SRE Agent with managed identity, managed resources, and an Azure Monitor trigger</li>
+  <li>Configured an autonomous Incident Response Plan with custom instructions</li>
+  <li>Watched the agent resolve a real OOMKilled incident in under two minutes with zero human intervention</li>
+</ol>
+
+<p>The key insight isn't just the speed improvement &mdash; it's the <strong>consistency</strong>. Azure SRE Agent runs the same structured methodology every single time: plan, collect, analyze, act, verify, report. It doesn't skip the verification step at 3 AM, and it delivers the incident report before the on-call engineer has finished reading the alert.</p>
+
+<p>For production AKS teams, Azure SRE Agent is a <strong>force multiplier</strong>: it handles the first-response loop autonomously so your engineers can focus on the work that genuinely requires human judgment &mdash; architecture decisions, capacity planning, and feature development.</p>
+
+<h3>Extend the demo</h3>
+<ul>
+  <li><strong>Add more incident types</strong>: configure alert rules for <code>CrashLoopBackOff</code>, <code>ImagePullBackOff</code>, and node resource pressure</li>
+  <li><strong>Multi-cluster</strong>: add a second AKS cluster to the agent's Managed Resources and watch it correlate cross-cluster signals</li>
+  <li><strong>KEDA + SRE Agent</strong>: let KEDA auto-scale on queue depth while SRE Agent handles any pod health issues in parallel</li>
+  <li><strong>Post-incident automation</strong>: configure the agent to create GitHub issues or send Teams notifications after every resolution</li>
+</ul>
+
+<div class="cta">
+  <h3>Get Started Today</h3>
+  <p>The demo repo has everything you need. Star it, clone it, and deploy Azure SRE Agent against your own AKS workloads.</p>
+  <div class="cta-links">
+    <a href="https://github.com/hailugebru/azure-sre-agents-aks" class="cta-btn">View on GitHub</a>
+    <a href="https://learn.microsoft.com/azure/sre-agent/" class="cta-btn secondary">Azure SRE Agent Docs</a>
+  </div>
+</div>
+
+</article>
+</div>
+
+<footer class="footer">
+  <p>&copy; 2026 Microsoft Corporation. All rights reserved. &nbsp;|&nbsp;
+     <a href="https://privacy.microsoft.com">Privacy</a> &nbsp;|&nbsp;
+     <a href="https://www.microsoft.com/legal/terms-of-use">Terms of Use</a> &nbsp;|&nbsp;
+     <a href="https://www.microsoft.com/legal/intellectualproperty/Trademarks">Trademarks</a>
+  </p>
+</footer>
+
+</body>
+</html>

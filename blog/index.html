@@ -180,6 +180,142 @@
 
   caption.fig { display: block; font-size: 13px; color: var(--ms-text-secondary); font-style: italic; text-align: center; margin-top: -16px; margin-bottom: 24px; }
   .footer { text-align: center; padding: 32px 24px; font-size: 13px; color: var(--ms-text-secondary); }
+
+  /* ── Portal Mockup ───────────────────────────────── */
+  .portal-mockup { border: 1px solid #ccc; border-radius: 8px; overflow: hidden; margin: 20px 0 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); font-size: 13px; }
+  .portal-topbar { background: #1b1a19; height: 36px; display: flex; align-items: center; padding: 0 14px; gap: 12px; }
+  .portal-topbar-logo { display: grid; grid-template-columns: 7px 7px; grid-template-rows: 7px 7px; gap: 1.5px; }
+  .portal-topbar-logo span:nth-child(1) { background: #f25022; }
+  .portal-topbar-logo span:nth-child(2) { background: #7fba00; }
+  .portal-topbar-logo span:nth-child(3) { background: #00a4ef; }
+  .portal-topbar-logo span:nth-child(4) { background: #ffb900; }
+  .portal-topbar-text { color: #fff; font-size: 13px; font-weight: 600; }
+  .portal-topbar-search { flex: 1; max-width: 400px; margin: 0 auto; background: #3b3a39; color: #999; border: none; border-radius: 4px; padding: 5px 12px; font-size: 12px; text-align: center; }
+  .portal-topbar-icons { display: flex; gap: 12px; color: #bbb; font-size: 14px; margin-left: auto; }
+  .portal-body { display: flex; min-height: 260px; }
+  .portal-sidebar { background: #252423; width: 44px; display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 14px; }
+  .portal-sidebar-icon { width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #bbb; cursor: default; }
+  .portal-sidebar-icon.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .portal-main { flex: 1; background: #f0f0f0; }
+  .portal-breadcrumb { background: #fff; padding: 10px 20px; font-size: 12px; color: #605e5c; border-bottom: 1px solid #e1dfdd; display: flex; align-items: center; gap: 6px; }
+  .portal-breadcrumb a { color: var(--ms-blue); text-decoration: none; font-size: 12px; }
+  .portal-breadcrumb .sep { color: #999; }
+  .portal-page-header { background: #fff; padding: 16px 20px; border-bottom: 1px solid #e1dfdd; display: flex; align-items: center; gap: 12px; }
+  .portal-page-header h2 { font-size: 18px; font-weight: 600; color: var(--ms-text); margin: 0; border: none; padding: 0; }
+  .portal-page-header .portal-icon { font-size: 22px; }
+  .portal-content { padding: 20px; }
+  .portal-toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .portal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 4px; font-size: 12.5px; font-weight: 500; cursor: default; border: 1px solid #ccc; background: #fff; color: var(--ms-text); }
+  .portal-btn.primary { background: var(--ms-blue); color: #fff; border-color: var(--ms-blue); }
+  .portal-card { background: #fff; border: 1px solid #e1dfdd; border-radius: 4px; padding: 16px 20px; margin-bottom: 12px; }
+  .portal-card h4 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: var(--ms-text); }
+  .portal-form-group { margin-bottom: 14px; }
+  .portal-form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--ms-text); }
+  .portal-form-group .required { color: var(--ms-red); }
+  .portal-form-group input, .portal-form-group select { width: 100%; max-width: 400px; padding: 7px 10px; border: 1px solid #8a8886; border-radius: 2px; font-size: 13px; font-family: inherit; background: #fff; color: var(--ms-text); }
+  .portal-form-group .hint { font-size: 11.5px; color: var(--ms-text-secondary); margin-top: 3px; }
+  .portal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .portal-form-row { grid-template-columns: 1fr; } }
+  .portal-radio { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 10px; }
+  .portal-radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #8a8886; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .portal-radio-dot.selected { border-color: var(--ms-blue); }
+  .portal-radio-dot.selected::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ms-blue); }
+  .portal-toggle { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .portal-toggle-track { width: 40px; height: 20px; border-radius: 10px; background: #ccc; position: relative; }
+  .portal-toggle-track.on { background: var(--ms-blue); }
+  .portal-toggle-track .portal-toggle-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .portal-toggle-track.on .portal-toggle-thumb { left: 22px; }
+  .portal-toggle-label { font-size: 13px; }
+  .portal-resource-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .portal-resource-table th { text-align: left; padding: 8px 12px; font-weight: 600; color: var(--ms-text-secondary); border-bottom: 1px solid #e1dfdd; font-size: 12px; background: transparent; }
+  .portal-resource-table td { padding: 10px 12px; border-bottom: 1px solid #f3f2f1; }
+  .portal-resource-table tr:hover { background: #f3f2f1; }
+  .resource-icon { display: inline-flex; align-items: center; gap: 8px; }
+  .icon-box { width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .portal-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+  .portal-status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .portal-status-dot.green { background: var(--ms-green); }
+  .portal-status-dot.red { background: var(--ms-red); }
+  .portal-tabs { display: flex; border-bottom: 1px solid #e1dfdd; background: #fff; padding: 0 20px; }
+  .portal-tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--ms-text-secondary); border-bottom: 2px solid transparent; cursor: default; }
+  .portal-tab.active { color: var(--ms-text); font-weight: 600; border-bottom-color: var(--ms-blue); }
+  .portal-notification { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 12.5px; border-radius: 4px; margin-bottom: 12px; }
+  .portal-notification.info { background: #e5f1fb; border: 1px solid #b3d7f2; color: #004578; }
+  .portal-notification.success { background: #dff6dd; border: 1px solid #b7e1b5; color: #107c10; }
+  .portal-notification.warning { background: #fff4ce; border: 1px solid #f8e08e; color: #8a6914; }
+  .portal-checklist { list-style: none; margin: 0; padding: 0; }
+  .portal-checklist li { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+  .portal-check { width: 18px; height: 18px; border-radius: 3px; border: 1px solid #8a8886; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+  .portal-check.checked { background: var(--ms-blue); border-color: var(--ms-blue); color: white; }
+  .fig { font-size: 13px; color: var(--ms-text-secondary); font-style: italic; text-align: center; margin-top: -8px; margin-bottom: 24px; }
+
+  /* ── Portal Mockup ───────────────────────────────── */
+  .portal-mockup { border: 1px solid #ccc; border-radius: 8px; overflow: hidden; margin: 20px 0 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); font-size: 13px; }
+  .portal-topbar { background: #1b1a19; height: 36px; display: flex; align-items: center; padding: 0 14px; gap: 12px; }
+  .portal-topbar-logo { display: grid; grid-template-columns: 7px 7px; grid-template-rows: 7px 7px; gap: 1.5px; }
+  .portal-topbar-logo span:nth-child(1) { background: #f25022; }
+  .portal-topbar-logo span:nth-child(2) { background: #7fba00; }
+  .portal-topbar-logo span:nth-child(3) { background: #00a4ef; }
+  .portal-topbar-logo span:nth-child(4) { background: #ffb900; }
+  .portal-topbar-text { color: #fff; font-size: 13px; font-weight: 600; }
+  .portal-topbar-search { flex: 1; max-width: 400px; margin: 0 auto; background: #3b3a39; color: #999; border: none; border-radius: 4px; padding: 5px 12px; font-size: 12px; text-align: center; }
+  .portal-topbar-icons { display: flex; gap: 12px; color: #bbb; font-size: 14px; margin-left: auto; }
+  .portal-body { display: flex; min-height: 260px; }
+  .portal-sidebar { background: #252423; width: 44px; display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 14px; }
+  .portal-sidebar-icon { width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #bbb; cursor: default; }
+  .portal-sidebar-icon.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .portal-main { flex: 1; background: #f0f0f0; }
+  .portal-breadcrumb { background: #fff; padding: 10px 20px; font-size: 12px; color: #605e5c; border-bottom: 1px solid #e1dfdd; display: flex; align-items: center; gap: 6px; }
+  .portal-breadcrumb a { color: var(--ms-blue); text-decoration: none; font-size: 12px; }
+  .portal-breadcrumb .sep { color: #999; }
+  .portal-page-header { background: #fff; padding: 16px 20px; border-bottom: 1px solid #e1dfdd; display: flex; align-items: center; gap: 12px; }
+  .portal-page-header h2 { font-size: 18px; font-weight: 600; color: var(--ms-text); margin: 0; border: none; padding: 0; }
+  .portal-page-header .portal-icon { font-size: 22px; }
+  .portal-content { padding: 20px; }
+  .portal-toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .portal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 4px; font-size: 12.5px; font-weight: 500; cursor: default; border: 1px solid #ccc; background: #fff; color: var(--ms-text); }
+  .portal-btn.primary { background: var(--ms-blue); color: #fff; border-color: var(--ms-blue); }
+  .portal-card { background: #fff; border: 1px solid #e1dfdd; border-radius: 4px; padding: 16px 20px; margin-bottom: 12px; }
+  .portal-card h4 { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: var(--ms-text); }
+  .portal-form-group { margin-bottom: 14px; }
+  .portal-form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--ms-text); }
+  .portal-form-group .required { color: var(--ms-red); }
+  .portal-form-group input, .portal-form-group select { width: 100%; max-width: 400px; padding: 7px 10px; border: 1px solid #8a8886; border-radius: 2px; font-size: 13px; font-family: inherit; background: #fff; color: var(--ms-text); }
+  .portal-form-group .hint { font-size: 11.5px; color: var(--ms-text-secondary); margin-top: 3px; }
+  .portal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .portal-form-row { grid-template-columns: 1fr; } }
+  .portal-radio { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 10px; }
+  .portal-radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #8a8886; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .portal-radio-dot.selected { border-color: var(--ms-blue); }
+  .portal-radio-dot.selected::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ms-blue); }
+  .portal-toggle { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .portal-toggle-track { width: 40px; height: 20px; border-radius: 10px; background: #ccc; position: relative; }
+  .portal-toggle-track.on { background: var(--ms-blue); }
+  .portal-toggle-track .portal-toggle-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .portal-toggle-track.on .portal-toggle-thumb { left: 22px; }
+  .portal-toggle-label { font-size: 13px; }
+  .portal-resource-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .portal-resource-table th { text-align: left; padding: 8px 12px; font-weight: 600; color: var(--ms-text-secondary); border-bottom: 1px solid #e1dfdd; font-size: 12px; background: transparent; }
+  .portal-resource-table td { padding: 10px 12px; border-bottom: 1px solid #f3f2f1; }
+  .portal-resource-table tr:hover { background: #f3f2f1; }
+  .resource-icon { display: inline-flex; align-items: center; gap: 8px; }
+  .icon-box { width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .portal-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+  .portal-status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .portal-status-dot.green { background: var(--ms-green); }
+  .portal-status-dot.red { background: var(--ms-red); }
+  .portal-tabs { display: flex; border-bottom: 1px solid #e1dfdd; background: #fff; padding: 0 20px; }
+  .portal-tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--ms-text-secondary); border-bottom: 2px solid transparent; cursor: default; }
+  .portal-tab.active { color: var(--ms-text); font-weight: 600; border-bottom-color: var(--ms-blue); }
+  .portal-notification { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 12.5px; border-radius: 4px; margin-bottom: 12px; }
+  .portal-notification.info { background: #e5f1fb; border: 1px solid #b3d7f2; color: #004578; }
+  .portal-notification.success { background: #dff6dd; border: 1px solid #b7e1b5; color: #107c10; }
+  .portal-notification.warning { background: #fff4ce; border: 1px solid #f8e08e; color: #8a6914; }
+  .portal-checklist { list-style: none; margin: 0; padding: 0; }
+  .portal-checklist li { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+  .portal-check { width: 18px; height: 18px; border-radius: 3px; border: 1px solid #8a8886; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+  .portal-check.checked { background: var(--ms-blue); border-color: var(--ms-blue); color: white; }
+  .fig { font-size: 13px; color: var(--ms-text-secondary); font-style: italic; text-align: center; margin-top: -8px; margin-bottom: 24px; }
 </style>
 </head>
 <body>
@@ -422,7 +558,83 @@
     <tr><td><code>store-front</code></td><td>Vue.js / nginx</td><td>Customer-facing storefront</td></tr>
     <tr><td><code>store-admin</code></td><td>Vue.js / nginx</td><td>Admin dashboard</td></tr>
     <tr><td><code>virtual-customer</code></td><td>Node.js</td><td>Simulates customer orders</td></tr>
-    <tr><td><code>virtual-worker</code></td><td>Node.js</td><td>Processes orders (scaled by KEDA)</td></tr>
+ !-- PORTAL MOCKUP: Figure 1 — Create Azure SRE Agent -->
+<div class="portal-mockup">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
+    <span class="portal-topbar-text">Microsoft Azure</span>
+    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
+    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar">
+      <div class="portal-sidebar-icon">&#x2261;</div>
+      <div class="portal-sidebar-icon">&#x2302;</div>
+      <div class="portal-sidebar-icon active">&#x1F916;</div>
+      <div class="portal-sidebar-icon">&#x1F4CA;</div>
+      <div class="portal-sidebar-icon">&#x2638;</div>
+    </div>
+    <div class="portal-main">
+      <div class="portal-breadcrumb">
+        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">Azure SRE Agent</a> <span class="sep">&rsaquo;</span> Create
+      </div>
+      <div class="portal-page-header">
+        <span class="portal-icon">&#x1F916;</span>
+        <h2>Create Azure SRE Agent</h2>
+      </div>
+      <div class="portal-tabs">
+        <div class="portal-tab active">Basics</div>
+        <div class="portal-tab">Networking</div>
+        <div class="portal-tab">Tags</div>
+        <div class="portal-tab">Review + Create</div>
+      </div>
+      <div class="portal-content">
+        <div class="portal-card">
+          <h4>Project Details</h4>
+          <div class="portal-form-row">
+            <div class="portal-form-group">
+              <label>Subscription <span class="required">*</span></label>
+              <select><option>My Azure Subscription</option></select>
+            </div>
+            <div class="portal-form-group">
+              <label>Resource group <span class="required">*</span></label>
+              <select><option>Azure-SRE-Agent-Demo_RG</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="portal-card">
+          <h4>Instance Details</h4>
+          <div class="portal-form-group">
+            <label>Agent name <span class="required">*</span></label>
+            <input type="text" value="aks-sre-agent" readonly />
+          </div>
+          <div class="portal-form-group">
+            <label>Region <span class="required">*</span></label>
+            <select><option>Canada Central</option></select>
+          </div>
+        </div>
+        <div class="portal-card">
+          <h4>Managed Identity</h4>
+          <div class="portal-notification info">&#x2139;&#xFE0F; A system-assigned managed identity will be created automatically. You can also add a user-assigned identity for cross-subscription access.</div>
+          <div class="portal-form-group">
+            <label>System-assigned managed identity</label>
+            <div class="portal-toggle">
+              <div class="portal-toggle-track on"><div class="portal-toggle-thumb"></div></div>
+              <span class="portal-toggle-label">On (Recommended)</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <div class="portal-btn primary">Review + Create</div>
+          <div class="portal-btn">Previous</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="fig">Figure 1 &mdash; Creating the Azure SRE Agent resource. Assign it to <code>Azure-SRE-Agent-Demo_RG</code>, name it <code>aks-sre-agent</code>, and enable system-assigned managed identity for secure, credential-free authentication to your Azure resources.</p>
+
+<   <tr><td><code>virtual-worker</code></td><td>Node.js</td><td>Processes orders (scaled by KEDA)</td></tr>
   </tbody>
 </table>
 </div>
@@ -435,6 +647,61 @@
 <span class="prompt">PS&gt; </span>kubectl get pods -n pets
 
 <span class="output">NAME                                READY   STATUS    RESTARTS   AGE</span>
+<!-- PORTAL MOCKUP: Figure 2 — Managed Resources -->
+<div class="portal-mockup">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
+    <span class="portal-topbar-text">Microsoft Azure</span>
+    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
+    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar">
+      <div class="portal-sidebar-icon">&#x2261;</div>
+      <div class="portal-sidebar-icon">&#x2302;</div>
+      <div class="portal-sidebar-icon active">&#x1F916;</div>
+      <div class="portal-sidebar-icon">&#x1F4CA;</div>
+      <div class="portal-sidebar-icon">&#x2638;</div>
+    </div>
+    <div class="portal-main">
+      <div class="portal-breadcrumb">
+        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">Azure SRE Agent</a> <span class="sep">&rsaquo;</span> <a href="#">aks-sre-agent</a> <span class="sep">&rsaquo;</span> Managed Resources
+      </div>
+      <div class="portal-page-header">
+        <span class="portal-icon">&#x1F4E6;</span>
+        <h2>Managed Resources</h2>
+      </div>
+      <div class="portal-content">
+        <div class="portal-toolbar">
+          <div class="portal-btn primary">+ Add resource</div>
+          <div class="portal-btn">&#x21BB; Refresh</div>
+        </div>
+        <div class="portal-notification info">&#x2139;&#xFE0F; Managed resources define the scope of what this agent can monitor and act on. Add resource groups to include all resources within them.</div>
+        <div class="portal-card" style="padding:0;">
+          <table class="portal-resource-table">
+            <thead>
+              <tr>
+                <th style="width:30px;"><div class="portal-check checked">&#x2713;</div></th>
+                <th>Name</th><th>Type</th><th>Subscription</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="portal-check checked">&#x2713;</div></td>
+                <td><div class="resource-icon"><div class="icon-box" style="background:#e8f0fe;">&#x1F4C1;</div><strong>Azure-SRE-Agent-Demo_RG</strong></div></td>
+                <td>Resource Group</td>
+                <td>My Azure Subscription</td>
+                <td><div class="portal-status"><div class="portal-status-dot green"></div> Connected</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="fig">Figure 2 &mdash; Adding <code>Azure-SRE-Agent-Demo_RG</code> as a managed resource. The agent now has visibility over every resource in the group &mdash; AKS cluster, Log Analytics workspace, and networking resources.</p>
+
 <span class="output">makeline-service-6b87c6f669-xr2pq   1/1     Running   0          2m</span>
 <span class="output">mongodb-0                           1/1     Running   0          2m</span>
 <span class="output">order-service-78465f5d44-fl782      1/1     Running   0          2m</span>
@@ -448,6 +715,72 @@
 <h3>Enable KEDA autoscaling for virtual-worker</h3>
 
 <p>Script <code>07-setup-keda-scaler.ps1</code> installs the KEDA add-on (if needed), waits for the CRDs, and deploys a <code>ScaledObject</code> that scales <code>virtual-worker</code> up when the RabbitMQ <code>orders</code> queue depth exceeds 10 messages per replica:</p>
+
+<!-- PORTAL MOCKUP: Figure 3 — Configure Azure Monitor Trigger -->
+<div class="portal-mockup">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
+    <span class="portal-topbar-text">Microsoft Azure</span>
+    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
+    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar">
+      <div class="portal-sidebar-icon">&#x2261;</div>
+      <div class="portal-sidebar-icon">&#x2302;</div>
+      <div class="portal-sidebar-icon active">&#x1F916;</div>
+      <div class="portal-sidebar-icon">&#x1F4CA;</div>
+      <div class="portal-sidebar-icon">&#x2638;</div>
+    </div>
+    <div class="portal-main">
+      <div class="portal-breadcrumb">
+        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">aks-sre-agent</a> <span class="sep">&rsaquo;</span> Triggers
+      </div>
+      <div class="portal-page-header">
+        <span class="portal-icon">&#x1F514;</span>
+        <h2>Triggers &mdash; Add Azure Monitor</h2>
+      </div>
+      <div class="portal-content">
+        <div class="portal-card">
+          <h4>Trigger Configuration</h4>
+          <div class="portal-form-group">
+            <label>Trigger type <span class="required">*</span></label>
+            <select><option>Azure Monitor Alerts</option></select>
+          </div>
+          <div class="portal-form-group">
+            <label>Trigger name <span class="required">*</span></label>
+            <input type="text" value="aks-alerts-trigger" readonly />
+          </div>
+        </div>
+        <div class="portal-card">
+          <h4>Alert Scope &mdash; Severity Filter</h4>
+          <div class="portal-notification info">&#x2139;&#xFE0F; Sev0&ndash;Sev2 alerts are routed to the agent for autonomous investigation and remediation.</div>
+          <ul class="portal-checklist">
+            <li><div class="portal-check checked">&#x2713;</div> <strong>Sev0</strong> &mdash; Critical</li>
+            <li><div class="portal-check checked">&#x2713;</div> <strong>Sev1</strong> &mdash; Error</li>
+            <li><div class="portal-check checked">&#x2713;</div> <strong>Sev2</strong> &mdash; Warning</li>
+            <li><div class="portal-check"></div> Sev3 &mdash; Informational</li>
+            <li><div class="portal-check"></div> Sev4 &mdash; Verbose</li>
+          </ul>
+        </div>
+        <div class="portal-card">
+          <h4>Action Group Integration</h4>
+          <div class="portal-form-group">
+            <label>Action group <span class="required">*</span></label>
+            <select><option>sre-agent-action-group (Azure-SRE-Agent-Demo_RG)</option></select>
+            <div class="hint">The action group routes Azure Monitor alerts to this SRE Agent via webhook.</div>
+          </div>
+          <div class="portal-notification success">&#x2705; Action group <strong>sre-agent-action-group</strong> is configured with a webhook pointing to this agent's endpoint.</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <div class="portal-btn primary">Save trigger</div>
+          <div class="portal-btn">Cancel</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="fig">Figure 3 &mdash; Configuring Azure Monitor as a trigger. Sev0&ndash;Sev2 alerts are routed through the action group webhook to the SRE Agent's endpoint.</p>
 
 <pre><span class="prompt">PS&gt; </span>.\07-setup-keda-scaler.ps1
 
@@ -490,6 +823,82 @@
   </li>
 </ol>
 
+<!-- PORTAL MOCKUP: Figure 1 — Create Azure SRE Agent -->
+<div class="portal-mockup">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
+    <span class="portal-topbar-text">Microsoft Azure</span>
+    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
+    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar">
+      <div class="portal-sidebar-icon">&#x2261;</div>
+      <div class="portal-sidebar-icon">&#x2302;</div>
+      <div class="portal-sidebar-icon active">&#x1F916;</div>
+      <div class="portal-sidebar-icon">&#x1F4CA;</div>
+      <div class="portal-sidebar-icon">&#x2638;</div>
+    </div>
+    <div class="portal-main">
+      <div class="portal-breadcrumb">
+        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">Azure SRE Agent</a> <span class="sep">&rsaquo;</span> Create
+      </div>
+      <div class="portal-page-header">
+        <span class="portal-icon">&#x1F916;</span>
+        <h2>Create Azure SRE Agent</h2>
+      </div>
+      <div class="portal-tabs">
+        <div class="portal-tab active">Basics</div>
+        <div class="portal-tab">Networking</div>
+        <div class="portal-tab">Tags</div>
+        <div class="portal-tab">Review + Create</div>
+      </div>
+      <div class="portal-content">
+        <div class="portal-card">
+          <h4>Project Details</h4>
+          <div class="portal-form-row">
+            <div class="portal-form-group">
+              <label>Subscription <span class="required">*</span></label>
+              <select><option>My Azure Subscription</option></select>
+            </div>
+            <div class="portal-form-group">
+              <label>Resource group <span class="required">*</span></label>
+              <select><option>Azure-SRE-Agent-Demo_RG</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="portal-card">
+          <h4>Instance Details</h4>
+          <div class="portal-form-group">
+            <label>Agent name <span class="required">*</span></label>
+            <input type="text" value="aks-sre-agent" readonly />
+          </div>
+          <div class="portal-form-group">
+            <label>Region <span class="required">*</span></label>
+            <select><option>Canada Central</option></select>
+          </div>
+        </div>
+        <div class="portal-card">
+          <h4>Managed Identity</h4>
+          <div class="portal-notification info">&#x2139;&#xFE0F; A system-assigned managed identity will be created automatically. You can also add a user-assigned identity for cross-subscription access.</div>
+          <div class="portal-form-group">
+            <label>System-assigned managed identity</label>
+            <div class="portal-toggle">
+              <div class="portal-toggle-track on"><div class="portal-toggle-thumb"></div></div>
+              <span class="portal-toggle-label">On (Recommended)</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <div class="portal-btn primary">Review + Create</div>
+          <div class="portal-btn">Previous</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="fig">Figure 1 &mdash; Creating the Azure SRE Agent resource. Assign it to <code>Azure-SRE-Agent-Demo_RG</code>, name it <code>aks-sre-agent</code>, and enable system-assigned managed identity for secure, credential-free authentication to your Azure resources.</p>
+
 <h3>Grant RBAC roles</h3>
 
 <pre><span class="comment"># Replace the --assignee value with your agent's managed identity object ID</span>
@@ -503,9 +912,115 @@
     --role <span class="string">"Monitoring Reader"</span> \
     --scope <span class="string">"/subscriptions/&lt;sub-id&gt;/resourcegroups/Azure-SRE-Agent-Demo_RG"</span></pre>
 
+<!-- PORTAL MOCKUP: Figure 2 — Managed Resources -->
+<div class="portal-mockup">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
+    <span class="portal-topbar-text">Microsoft Azure</span>
+    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
+    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar">
+      <div class="portal-sidebar-icon">&#x2261;</div>
+      <div class="portal-sidebar-icon">&#x2302;</div>
+      <div class="portal-sidebar-icon active">&#x1F916;</div>
+      <div class="portal-sidebar-icon">&#x1F4CA;</div>
+      <div class="portal-sidebar-icon">&#x2638;</div>
+    </div>
+    <div class="portal-main">
+      <div class="portal-breadcrumb">
+        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">Azure SRE Agent</a> <span class="sep">&rsaquo;</span> <a href="#">aks-sre-agent</a> <span class="sep">&rsaquo;</span> Managed Resources
+      </div>
+      <div class="portal-page-header">
+        <span class="portal-icon">&#x1F4E6;</span>
+        <h2>Managed Resources</h2>
+      </div>
+      <div class="portal-content">
+        <div class="portal-toolbar">
+          <div class="portal-btn primary">+ Add resource</div>
+          <div class="portal-btn">&#x21BB; Refresh</div>
+        </div>
+        <div class="portal-notification info">&#x2139;&#xFE0F; Managed resources define the scope of what this agent can monitor and act on. Add resource groups to include all resources within them.</div>
+        <div class="portal-card" style="padding:0;">
+          <table class="portal-resource-table">
+            <thead>
+              <tr>
+                <th style="width:30px;"><div class="portal-check checked">&#x2713;</div></th>
+                <th>Name</th><th>Type</th><th>Subscription</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="portal-check checked">&#x2713;</div></td>
+                <td><div class="resource-icon"><div class="icon-box" style="background:#e8f0fe;">&#x1F4C1;</div><strong>Azure-SRE-Agent-Demo_RG</strong></div></td>
+                <td>Resource Group</td>
+                <td>My Azure Subscription</td>
+                <td><div class="portal-status"><div class="portal-status-dot green"></div> Connected</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="fig">Figure 2 &mdash; Adding <code>Azure-SRE-Agent-Demo_RG</code> as a managed resource. The agent now has visibility over every resource in the group &mdash; AKS cluster, Log Analytics workspace, and networking resources.</p>
+
 <h3>Create the pod health alert rule</h3>
 
-<p>This rule fires a Sev1 alert whenever the count of failed pods on the cluster is greater than zero for five consecutive minutes:</p>
+<p>ThPORTAL MOCKUP: Figure 5 — Incident Report -->
+<div class="portal-mockup">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
+    <span class="portal-topbar-text">Microsoft Azure</span>
+    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
+    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar">
+      <div class="portal-sidebar-icon">&#x2261;</div>
+      <div class="portal-sidebar-icon">&#x2302;</div>
+      <div class="portal-sidebar-icon active">&#x1F916;</div>
+      <div class="portal-sidebar-icon">&#x1F4CA;</div>
+      <div class="portal-sidebar-icon">&#x2638;</div>
+    </div>
+    <div class="portal-main">
+      <div class="portal-breadcrumb">
+        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">aks-sre-agent</a> <span class="sep">&rsaquo;</span> Incident History <span class="sep">&rsaquo;</span> INC-2026-0407-001
+      </div>
+      <div class="portal-page-header">
+        <span class="portal-icon">&#x1F4CB;</span>
+        <h2>Incident INC-2026-0407-001</h2>
+      </div>
+      <div class="portal-content">
+        <div class="portal-notification success">&#x2705; <strong>Resolved</strong> &mdash; Alert to resolution: 1m 47s &nbsp;|&nbsp; Mode: Autonomous &nbsp;|&nbsp; Human intervention: None</div>
+        <div class="portal-card">
+          <h4>Summary</h4>
+          <table class="portal-resource-table" style="font-size:13px;">
+            <tbody>
+              <tr><td style="font-weight:600;width:150px;">Alert</td><td>[Sev1] pod-not-healthy</td></tr>
+              <tr><td style="font-weight:600;">Resource</td><td>Azure-SRE-Agent-Demo-Cluster (Azure-SRE-Agent-Demo_RG)</td></tr>
+              <tr><td style="font-weight:600;">Fired</td><td>2026-04-07 21:07:13 UTC</td></tr>
+              <tr><td style="font-weight:600;">Resolved</td><td>2026-04-07 21:09:00 UTC</td></tr>
+              <tr><td style="font-weight:600;">Root Cause</td><td>OOMKilled &mdash; container memory limit (16Mi) incompatible with Node.js V8 heap (64MB via NODE_OPTIONS)</td></tr>
+              <tr><td style="font-weight:600;">Action Taken</td><td>Patched order-service deployment: memory limit 16Mi &rarr; 128Mi, request 8Mi &rarr; 64Mi</td></tr>
+              <tr><td style="font-weight:600;">Affected Pods</td><td>order-service-5f9d44b6c8-4bvsr, order-service-5f9d44b6c8-fl782 (namespace: pets)</td></tr>
+              <tr><td style="font-weight:600;">Post-State</td><td>2/2 pods Running 1/1, 0 restarts. Cluster-wide: 0 unhealthy pods.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="portal-card">
+          <h4>&#x1F4A1; Recommendation</h4>
+          <p style="font-size:13px;margin:0;">Update the source deployment manifest in Git to persist this memory limit fix. The current runtime patch will be overwritten on the next CI/CD deployment.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="fig">Figure 5 &mdash; The agent's structured incident report, delivered automatically after verification. Alert to full resolution: 1 minute 47 seconds. Human interventions: 0.</p>
+
+<!-- is rule fires a Sev1 alert whenever the count of failed pods on the cluster is greater than zero for five consecutive minutes:</p>
 
 <pre><span class="prompt">$ </span>az monitor metrics alert create \
     --name <span class="string">"pod-not-healthy"</span> \
@@ -516,6 +1031,72 @@
     --action <span class="string">"sre-agent-action-group"</span> \
     --evaluation-frequency <span class="string">"1m"</span> \
     --window-size <span class="string">"5m"</span></pre>
+
+<!-- PORTAL MOCKUP: Figure 3 — Configure Azure Monitor Trigger -->
+<div class="portal-mockup">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
+    <span class="portal-topbar-text">Microsoft Azure</span>
+    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
+    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar">
+      <div class="portal-sidebar-icon">&#x2261;</div>
+      <div class="portal-sidebar-icon">&#x2302;</div>
+      <div class="portal-sidebar-icon active">&#x1F916;</div>
+      <div class="portal-sidebar-icon">&#x1F4CA;</div>
+      <div class="portal-sidebar-icon">&#x2638;</div>
+    </div>
+    <div class="portal-main">
+      <div class="portal-breadcrumb">
+        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">aks-sre-agent</a> <span class="sep">&rsaquo;</span> Triggers
+      </div>
+      <div class="portal-page-header">
+        <span class="portal-icon">&#x1F514;</span>
+        <h2>Triggers &mdash; Add Azure Monitor</h2>
+      </div>
+      <div class="portal-content">
+        <div class="portal-card">
+          <h4>Trigger Configuration</h4>
+          <div class="portal-form-group">
+            <label>Trigger type <span class="required">*</span></label>
+            <select><option>Azure Monitor Alerts</option></select>
+          </div>
+          <div class="portal-form-group">
+            <label>Trigger name <span class="required">*</span></label>
+            <input type="text" value="aks-alerts-trigger" readonly />
+          </div>
+        </div>
+        <div class="portal-card">
+          <h4>Alert Scope &mdash; Severity Filter</h4>
+          <div class="portal-notification info">&#x2139;&#xFE0F; Sev0&ndash;Sev2 alerts are routed to the agent for autonomous investigation and remediation.</div>
+          <ul class="portal-checklist">
+            <li><div class="portal-check checked">&#x2713;</div> <strong>Sev0</strong> &mdash; Critical</li>
+            <li><div class="portal-check checked">&#x2713;</div> <strong>Sev1</strong> &mdash; Error</li>
+            <li><div class="portal-check checked">&#x2713;</div> <strong>Sev2</strong> &mdash; Warning</li>
+            <li><div class="portal-check"></div> Sev3 &mdash; Informational</li>
+            <li><div class="portal-check"></div> Sev4 &mdash; Verbose</li>
+          </ul>
+        </div>
+        <div class="portal-card">
+          <h4>Action Group Integration</h4>
+          <div class="portal-form-group">
+            <label>Action group <span class="required">*</span></label>
+            <select><option>sre-agent-action-group (Azure-SRE-Agent-Demo_RG)</option></select>
+            <div class="hint">The action group routes Azure Monitor alerts to this SRE Agent via webhook.</div>
+          </div>
+          <div class="portal-notification success">&#x2705; Action group <strong>sre-agent-action-group</strong> is configured with a webhook pointing to this agent's endpoint.</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <div class="portal-btn primary">Save trigger</div>
+          <div class="portal-btn">Cancel</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="fig">Figure 3 &mdash; Configuring Azure Monitor as a trigger. Sev0&ndash;Sev2 alerts are routed through the action group webhook to the SRE Agent's endpoint.</p>
 
 <h3>Incident Response Plan: three operating modes</h3>
 
@@ -703,6 +1284,57 @@
     </ul>
   </div>
 </div>
+
+<!-- PORTAL MOCKUP: Figure 5 — Incident Report -->
+<div class="portal-mockup">
+  <div class="portal-topbar">
+    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
+    <span class="portal-topbar-text">Microsoft Azure</span>
+    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
+    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar">
+      <div class="portal-sidebar-icon">&#x2261;</div>
+      <div class="portal-sidebar-icon">&#x2302;</div>
+      <div class="portal-sidebar-icon active">&#x1F916;</div>
+      <div class="portal-sidebar-icon">&#x1F4CA;</div>
+      <div class="portal-sidebar-icon">&#x2638;</div>
+    </div>
+    <div class="portal-main">
+      <div class="portal-breadcrumb">
+        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">aks-sre-agent</a> <span class="sep">&rsaquo;</span> Incident History <span class="sep">&rsaquo;</span> INC-2026-0407-001
+      </div>
+      <div class="portal-page-header">
+        <span class="portal-icon">&#x1F4CB;</span>
+        <h2>Incident INC-2026-0407-001</h2>
+      </div>
+      <div class="portal-content">
+        <div class="portal-notification success">&#x2705; <strong>Resolved</strong> &mdash; Alert to resolution: 1m 47s &nbsp;|&nbsp; Mode: Autonomous &nbsp;|&nbsp; Human intervention: None</div>
+        <div class="portal-card">
+          <h4>Summary</h4>
+          <table class="portal-resource-table" style="font-size:13px;">
+            <tbody>
+              <tr><td style="font-weight:600;width:150px;">Alert</td><td>[Sev1] pod-not-healthy</td></tr>
+              <tr><td style="font-weight:600;">Resource</td><td>Azure-SRE-Agent-Demo-Cluster (Azure-SRE-Agent-Demo_RG)</td></tr>
+              <tr><td style="font-weight:600;">Fired</td><td>2026-04-07 21:07:13 UTC</td></tr>
+              <tr><td style="font-weight:600;">Resolved</td><td>2026-04-07 21:09:00 UTC</td></tr>
+              <tr><td style="font-weight:600;">Root Cause</td><td>OOMKilled &mdash; container memory limit (16Mi) incompatible with Node.js V8 heap (64MB via NODE_OPTIONS)</td></tr>
+              <tr><td style="font-weight:600;">Action Taken</td><td>Patched order-service deployment: memory limit 16Mi &rarr; 128Mi, request 8Mi &rarr; 64Mi</td></tr>
+              <tr><td style="font-weight:600;">Affected Pods</td><td>order-service-5f9d44b6c8-4bvsr, order-service-5f9d44b6c8-fl782 (namespace: pets)</td></tr>
+              <tr><td style="font-weight:600;">Post-State</td><td>2/2 pods Running 1/1, 0 restarts. Cluster-wide: 0 unhealthy pods.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="portal-card">
+          <h4>&#x1F4A1; Recommendation</h4>
+          <p style="font-size:13px;margin:0;">Update the source deployment manifest in Git to persist this memory limit fix. The current runtime patch will be overwritten on the next CI/CD deployment.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="fig">Figure 5 &mdash; The agent's structured incident report, delivered automatically after verification. Alert to full resolution: 1 minute 47 seconds. Human interventions: 0.</p>
 
 <!-- ================================================================ -->
 <!--  BONUS: NAP                                                       -->

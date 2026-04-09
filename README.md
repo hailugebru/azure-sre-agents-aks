@@ -142,6 +142,51 @@ kubectl exec rabbitmq-0 -n pets -- rabbitmqctl list_queues
 
 ---
 
+### Step 8 — Configure GitHub Post-Incident Issue Automation (Portal)
+
+This step is performed in the Azure portal at **[sre.azure.com](https://sre.azure.com)**.  
+Run the helper script first to print the configuration checklist:
+
+```powershell
+.\08-setup-github-issues.ps1
+```
+
+**A — Add the GitHub MCP connector**
+
+1. Go to **Builder > Connectors > + Add connector**
+2. Select the **MCP** tab → **GitHub MCP server**
+3. Authenticate via **OAuth** (sign in with your GitHub account) or supply a **PAT**
+
+   | PAT type | Required scope |
+   |---|---|
+   | Classic | `repo` |
+   | Fine-grained | `Issues: Read and write` on `hailugebru/azure-sre-agents-aks` |
+
+4. Select **Edit** on the new connector → **MCP Tools** → enable `create_issue` (and optionally `list_issues`)
+5. Select **Save**
+
+**B — Create the `github-issue-tracker` subagent**
+
+1. Go to **Builder > Subagent builder > + Create subagent**
+2. Name: `github-issue-tracker` | Autonomy: **Autonomous**
+3. Add tool: `create_issue` from the `github-mcp` connection
+4. Select **Save**
+
+**C — Update the Incident Response Plan custom instructions**
+
+Replace instruction 5 with:
+
+```
+5. After successful resolution, invoke the github-issue-tracker subagent to create
+   a GitHub issue in hailugebru/azure-sre-agents-aks with the incident ID, root
+   cause, patch applied, and a recommendation to update the source manifest in Git.
+```
+
+> **Verify:** After running the OOMKilled demo (Step 3 → Step 4), check  
+> `https://github.com/hailugebru/azure-sre-agents-aks/issues` for the auto-created issue.
+
+---
+
 ## Cleanup
 
 To delete all Azure resources when done:
@@ -164,6 +209,7 @@ nap/
 │   ├── 05-arm-nodepool.ps1
 │   ├── 06-arm-nodepool-v2.ps1
 │   ├── 07-setup-keda-scaler.ps1
+│   ├── 08-setup-github-issues.ps1
 │   ├── README.md
 │   └── manifests/
 │       ├── aks-store/

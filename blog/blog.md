@@ -13,6 +13,7 @@
 4. [Step 1 — Deploy an AKS Cluster with NAP](#step-1--deploy-an-aks-cluster-with-nap)
 5. [Step 2 — Deploy the AKS Store Demo App](#step-2--deploy-the-aks-store-demo-app)
 6. [Step 3 — Configure Azure SRE Agent](#step-3--configure-azure-sre-agent)
+   - [Post-Incident GitHub Issue Automation](#post-incident-github-issue-automation)
 7. [Step 4 — See It in Action: Autonomous OOMKilled Recovery](#step-4--see-it-in-action-autonomous-oomkilled-recovery)
 8. [Bonus: Node Auto-Provisioning in Action](#bonus-node-auto-provisioning-in-action)
 9. [Next Steps & Resources](#next-steps--resources)
@@ -247,7 +248,101 @@ For AKS pod health alerts in the pets namespace:
 3. For OOMKilled: correlate NODE_OPTIONS / JVM flags against container memory limits
    before adjusting. Apply the minimum necessary increase.
 4. After any patch, wait for rollout, then verify cluster-wide pod health.
-5. Create a GitHub issue in the infra-ops repo with the incident summary.
+5. After successful resolution, invoke the github-issue-tracker subagent to create
+   a GitHub issue in hailugebru/azure-sre-agents-aks with the incident ID, root
+   cause, patch applied, and a recommendation to update the source manifest in Git.
+```
+
+---
+
+### Post-Incident GitHub Issue Automation
+
+With the agent resolving incidents autonomously, the final piece is closing the loop: every autonomous repair should produce a permanent, searchable audit trail in GitHub — eliminating manual post-mortem paperwork.
+
+This requires two configuration steps in the portal at **[sre.azure.com](https://sre.azure.com)**, then one update to the custom instructions above.
+
+#### 1. Add the GitHub MCP connector
+
+The **GitHub MCP server** connector gives the agent write access to GitHub Issues via the Model Context Protocol.
+
+1. Go to **Builder > Connectors > + Add connector**.
+2. Select the **MCP** tab, then select **GitHub MCP server**.
+3. Choose your authentication method:
+
+   | Method | When to use |
+   |---|---|
+   | **OAuth** | Simplest setup — sign in with your GitHub account in the popup | 
+   | **PAT** | Use when your org enforces SSO or you want a service account token |
+
+   For a PAT, the minimum required scopes are:
+   - **Classic PAT:** `repo` (includes issues read/write)
+   - **Fine-grained PAT:** `Issues: Read and write` on the target repository
+
+4. After the connector shows **Connected**, select **Edit** → **MCP Tools** and enable:
+   - `create_issue` *(required)*
+   - `list_issues` *(recommended — lets the agent check for duplicates before filing)*
+   - `get_issue` *(optional)*
+
+5. Select **Save**.
+
+> **Least-privilege note:** A fine-grained PAT scoped to a single repo with only `Issues: Read and write` is the recommended approach for production. It limits the agent's blast radius to issue management in one repository.
+
+> _Portal screenshot: MCP connector list showing `github-mcp` with status **Connected** and tools `create_issue`, `list_issues` selected._  
+> _(See Figure 6 in the [HTML version](./index.html))_
+
+#### 2. Create the `github-issue-tracker` subagent
+
+A dedicated subagent keeps GitHub write access scoped and auditable. The main agent invokes it only after a successful resolution.
+
+1. Go to **Builder > Subagent builder** and select **+ Create subagent**.
+2. Configure the subagent:
+
+   | Field | Value |
+   |---|---|
+   | Name | `github-issue-tracker` |
+   | Autonomy | **Autonomous** (must run without waiting for human approval) |
+   | Tools | `create_issue` from the `github-mcp` connection |
+
+3. Select **Save**.
+
+The subagent now appears on the Agent Canvas. When the main agent's Incident Response Plan reaches instruction 5, it delegates the issue creation to this subagent, which calls `create_issue` and returns the new issue URL.
+
+> _Portal screenshot: Agent Canvas showing `github-issue-tracker` subagent node connected to the `create_issue` tool from `github-mcp`._  
+> _(See Figure 7 in the [HTML version](./index.html))_
+
+#### What each created issue looks like
+
+After the OOMKilled incident demo in Step 4, the agent creates a GitHub issue like this:
+
+**Title:** `[SRE-Auto] INC-2026-0407-001 — OOMKilled: order-service memory limit incompatible with Node.js V8 heap`
+
+**Labels:** `incident`, `auto-remediated`
+
+**Body:**
+```
+## Incident Summary
+- **Incident ID:** INC-2026-0407-001
+- **Alert:** [Sev1] pod-not-healthy
+- **Fired:** 2026-04-07 21:07:13 UTC | **Resolved:** 2026-04-07 21:09:00 UTC
+- **MTTR:** 1m 47s
+
+## Root Cause
+Container memory limit (16Mi) was incompatible with the Node.js V8 old-generation
+heap (--max-old-space-size=64 → 64 MB). Linux OOM killer terminated the process
+(exit code 137) on every startup, causing CrashLoopBackOff.
+
+## Fix Applied
+Patched order-service via rolling update:
+- memory limit: 16Mi → 128Mi
+- memory request: 8Mi → 64Mi
+
+## Post-State
+2/2 pods Running 1/1, 0 restarts. Cluster-wide: 0 unhealthy pods.
+
+## Recommendation
+Update the source manifest in Git — the runtime patch will be overwritten
+on the next CI/CD deploy.
+File: manifests/aks-store/02-order-service.yaml
 ```
 
 ---
@@ -383,7 +478,7 @@ The key insight isn't just the speed improvement — it's **consistency**. Azure
 - **Add more incident types**: configure alert rules for `CrashLoopBackOff`, `ImagePullBackOff`, and node resource pressure
 - **Multi-cluster**: add a second AKS cluster to Managed Resources and watch the agent correlate cross-cluster signals
 - **KEDA + SRE Agent**: let KEDA auto-scale on queue depth while SRE Agent handles pod health issues in parallel
-- **Post-incident automation**: configure the agent to create GitHub issues or send Teams notifications after every resolution
+- **Post-incident automation**: Teams notifications — add the **Send notification (Teams)** connector under the `Notification` tab, create a `teams-notifier` subagent, and add an instruction to ping your on-call channel alongside the GitHub issue
 
 ### Resources
 

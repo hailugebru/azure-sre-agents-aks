@@ -297,7 +297,7 @@ For AKS pod health alerts in the pets namespace:
 
 With the agent resolving incidents autonomously, the final piece is closing the loop: every autonomous repair should produce a permanent, searchable audit trail in GitHub — eliminating manual post-mortem paperwork.
 
-The Azure SRE Agent **GitHub connector** supports OAuth and PAT authentication, and can read repository code, create issues, comment on pull requests, and trigger workflows. For most teams, the built-in connector via Resource Mapping is the simplest and most maintainable path. The GitHub MCP server is an advanced option for teams that specifically need MCP-based tool integration beyond the built-in connector model.
+The **built-in GitHub connector** (Option A) supports OAuth and PAT authentication, and can read repository code, create issues, comment on pull requests, and trigger workflows. For most teams, this is the simplest and most maintainable path. The **GitHub MCP connector** (Option B) supports PAT-based Bearer token authentication only — OAuth is not supported for MCP connectors.
 
 There are two setup paths:
 

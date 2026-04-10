@@ -142,19 +142,7 @@ kubectl get nodes,pods -n pets -o wide -w
 
 ## Step 2 — Deploy the AKS Store Demo App
 
-The [AKS Store Demo](https://github.com/Azure-Samples/aks-store-demo) is a reference microservices application with nine components running in the `pets` namespace:
-
-| Service | Technology | Role |
-|---|---|---|
-| `mongodb` | MongoDB 6 | Product catalogue persistence |
-| `rabbitmq` | RabbitMQ 3 | Order queue broker |
-| `order-service` | Node.js / Fastify | Accepts and queues orders |
-| `makeline-service` | Go / Gin | Processes orders from queue |
-| `product-service` | Rust / Actix | Product catalogue API |
-| `store-front` | Vue.js / nginx | Customer-facing storefront |
-| `store-admin` | Vue.js / nginx | Admin dashboard |
-| `virtual-customer` | Node.js | Simulates customer orders |
-| `virtual-worker` | Node.js | Processes orders (scaled by KEDA) |
+The [AKS Store Demo](https://github.com/Azure-Samples/aks-store-demo) is a reference microservices application with nine components running in the `pets` namespace — covering stateless services, stateful dependencies (MongoDB, RabbitMQ), and event-driven workers.
 
 Manifests are vendored locally in `manifests/aks-store/` for easy customization:
 
@@ -164,22 +152,6 @@ Manifests are vendored locally in `manifests/aks-store/` for easy customization:
 # Verify all pods are Running
 kubectl get pods -n pets
 ```
-
-Expected output:
-```
-NAME                                READY   STATUS    RESTARTS   AGE
-makeline-service-6b87c6f669-xr2pq   1/1     Running   0          2m
-mongodb-0                           1/1     Running   0          2m
-order-service-78465f5d44-fl782      1/1     Running   0          2m
-product-service-5c94f8c7b-9q8lp     1/1     Running   0          2m
-rabbitmq-0                          1/1     Running   0          2m
-store-admin-6b87c4dc9d-9xklm        1/1     Running   0          2m
-store-front-5c5f8c7db-5k2tr         1/1     Running   0          2m
-virtual-customer-7d8f5b9c6-2nfzp    1/1     Running   0          2m
-virtual-worker-9c6d4b87f-8m3xt      1/1     Running   0          2m
-```
-
-> This application is a useful incident-response demo host because it combines stateless services, stateful dependencies (MongoDB, RabbitMQ), and event-driven workers — making both platform-level and workload-level failure modes easy to reproduce and explain.
 
 ### Enable KEDA autoscaling for virtual-worker
 

@@ -8,19 +8,15 @@
 
 ## In This Article
 
-1. [Introduction — The Problem Azure SRE Agent Solves](#introduction)
+1. [Introduction](#introduction)
 2. [Solution Architecture](#solution-architecture)
 3. [Prerequisites & Demo Repo](#prerequisites--demo-repo)
 4. [Step 1 — Deploy an AKS Cluster with NAP](#step-1--deploy-an-aks-cluster-with-nap)
 5. [Step 2 — Deploy the AKS Store Demo App](#step-2--deploy-the-aks-store-demo-app)
 6. [Step 3 — Configure Azure SRE Agent](#step-3--configure-azure-sre-agent)
-   - [Post-Incident GitHub Issue Automation](#post-incident-github-issue-automation)
 7. [Step 4 — See It in Action: Two Real Incidents, Zero Escalations](#step-4--see-it-in-action-two-real-incidents-zero-escalations)
-   - [Incident 1 — CPU Starvation, Alert-Driven (~8 min MTTR)](#incident-1-cpu-starvation-and-startup-probe-failures--alert-driven-mttr-8-minutes)
-   - [Incident 2 — OOMKilled, Chat-Driven (~4 min MTTR)](#incident-2-oomkilled--chat-driven-mttr-4-minutes)
 8. [Bonus: Node Auto-Provisioning in Action](#bonus-node-auto-provisioning-in-action)
-9. [Next Steps & Resources](#next-steps--resources)
-10. [Production Adoption Guidance](#production-adoption-guidance)
+9. [Key Takeaways & Next Steps](#key-takeaways--next-steps)
 
 ---
 
@@ -30,9 +26,7 @@ It's 2 AM. Azure Monitor fires a Sev1 alert: pods are crashing in your productio
 
 For teams running containerized workloads on Azure Kubernetes Service (AKS), this manual response cycle is a source of alert fatigue, slow recovery times, and inconsistent remediation quality. **Azure SRE Agent** addresses this head-on: it is an AI-powered operations agent that connects to your Azure resources, receives alerts from Azure Monitor, and executes a structured investigate-diagnose-remediate-verify loop — fully autonomously.
 
-In this post, I'll walk through that end-to-end flow in a tightly scoped demo environment configured for autonomous incident handling — covering cluster setup, application deployment, agent configuration, and two real incidents resolved without human intervention.
-
-> **Scope note:** This demo uses Privileged permissions and Autonomous run mode against a single resource group. Azure SRE Agent also supports Reader permissions and Review run mode for teams that want investigation output without automated execution. Start there if autonomy is new to your environment.
+In this post, I'll walk through that end-to-end flow — covering cluster setup, agent configuration, and two real incidents resolved without human intervention.
 
 | Metric | Result |
 |---|---|
@@ -66,6 +60,16 @@ Azure Monitor  →  Action Group  →  Azure SRE Agent  →  AKS Cluster
 | Monitoring trigger | Azure Monitor metric alert | Detects pod phase failures; combine with container waiting signals for broader coverage |
 | AI agent | Azure SRE Agent | Autonomous incident investigation and remediation |
 
+> **Azure SRE Agent in one minute**
+>
+> | Concept | What it means |
+> |---|---|
+> | **Incident platform** | Where alerts originate — Azure Monitor in this demo |
+> | **Built-in Azure capabilities** | Azure Monitor, Log Analytics, Resource Graph, AKS diagnostics — no connector needed |
+> | **Connectors** | External systems the agent can use: GitHub, Teams, Kusto, MCP servers |
+> | **Permission level** | `Reader` (investigate only) or `Privileged` (investigate and remediate) |
+> | **Run mode** | `Review` (agent proposes, human approves) or `Autonomous` (agent acts without approval) |
+
 ---
 
 ## Prerequisites & Demo Repo
@@ -94,39 +98,15 @@ notepad 00-variables.ps1
 
 ## Step 1 — Deploy an AKS Cluster with NAP
 
-The cluster uses **Node Auto-Provisioning (NAP)**, which automatically selects and manages VM capacity based on pending pod requirements. In AKS, NAP is built on Karpenter and uses `NodePool` and `AKSNodeClass` resources to express provisioning policy, architecture preference, and workload constraints — making it a good fit for demos that intentionally create burst, pressure, or mixed scheduling conditions. The cluster also uses Azure CNI Overlay with the Cilium eBPF dataplane.
+The demo cluster uses **Node Auto-Provisioning (NAP)** (built on Karpenter) for demand-driven node selection, Azure CNI Overlay with Cilium for eBPF networking, and managed Prometheus for metrics — a configuration that creates the kind of CPU and memory pressure Azure SRE Agent can investigate and remediate.
 
-> **Note:** NAP manages infrastructure capacity. Azure SRE Agent investigates and remediates incidents. They are orthogonal — the agent is not a cluster autoscaler and does not interact with NAP directly.
-
-### Register the preview feature and create the cluster
+> **Note:** NAP manages infrastructure capacity. Azure SRE Agent investigates and remediates incidents. The agent does not interact with NAP directly.
 
 ```powershell
-# Load shared variables into your session
 . .\00-variables.ps1
-
-# Register preview features and install aks-preview extension (~5-15 min)
-.\01-prerequisites.ps1
-
-# Create the cluster (~5-10 minutes)
-.\02-create-cluster.ps1
+.\01-prerequisites.ps1   # register preview features (~5-15 min)
+.\02-create-cluster.ps1  # create the cluster (~5-10 min)
 ```
-
-The cluster creation command under the hood:
-
-```bash
-az aks create \
-  --name "Azure-SRE-Agent-Demo-Cluster" \
-  --resource-group "Azure-SRE-Agent-Demo_RG" \
-  --node-provisioning-mode Auto \       # enables NAP/Karpenter
-  --network-plugin azure \
-  --network-plugin-mode overlay \
-  --network-dataplane cilium \          # eBPF — no kube-proxy
-  --enable-azure-monitor-metrics \      # managed Prometheus
-  --generate-ssh-keys
-```
-
-> **💡 Why Cilium?**  
-> The `--network-dataplane cilium` flag replaces the legacy iptables/kube-proxy stack with eBPF programs running directly in the Linux kernel. The result: lower CPU overhead for services with many endpoints, native network policy enforcement, and better observability via Hubble. This is a well-supported modern AKS networking configuration — see the [AKS networking docs](https://learn.microsoft.com/azure/aks/azure-cni-overlay) for the latest guidance.
 
 ---
 
@@ -145,14 +125,10 @@ kubectl get pods -n pets
 
 ### Enable KEDA autoscaling for virtual-worker
 
-KEDA in AKS is a managed add-on that scales workloads from 0 to N based on external event sources. For `virtual-worker`, the trigger is the depth of the RabbitMQ `orders` queue.
+KEDA scales `virtual-worker` on RabbitMQ queue depth — creating workload activity for the agent to observe during incident response.
 
 ```powershell
 .\07-setup-keda-scaler.ps1
-
-# Test KEDA scaling: flood the queue to trigger scale-out
-kubectl scale deployment virtual-customer -n pets --replicas=4
-kubectl get deploy -n pets -w
 ```
 
 ---
@@ -187,7 +163,7 @@ With the cluster and application running, the next step is to wire up the Azure 
        --scope "/subscriptions/<sub-id>/resourcegroups/Azure-SRE-Agent-Demo_RG"
    ```
 
-   > **Privileged vs. Standard**: Choose **Privileged** when adding the resource group in step 3 — required for the agent to apply patches autonomously. Standard gives read-only access suitable for Monitor Only mode.
+   > **Privileged vs. Reader**: Choose **Privileged** when adding the resource group in step 3 — required for the agent to apply patches. Reader permission level gives read-only access suitable for Review run mode.
 
 3. **Add your resource group as a Managed Resource**  
    In the agent's *Managed Resources* blade, click **+ Add resource** and add `Azure-SRE-Agent-Demo_RG`. Managed resource groups define the Azure scope the agent can investigate. Within that scope, the quality of diagnosis and actions available still depend on the agent's RBAC permissions and the telemetry your environment emits.
@@ -257,41 +233,17 @@ For AKS pod health alerts in the pets namespace:
 
 ### Post-Incident GitHub Issue Automation
 
-With the agent resolving incidents autonomously, the final piece is closing the loop: every autonomous repair should produce a permanent, searchable audit trail in GitHub — eliminating manual post-mortem paperwork.
+After every successful remediation, the agent creates a GitHub issue — capturing the incident ID, root cause, patches applied, and follow-up recommendations. This closes the loop from runtime fix to tracked manifest change.
 
-The **GitHub MCP connector** uses PAT-based Bearer token authentication (OAuth is not supported for MCP connectors). It gives the agent full GitHub API access — issue creation, code search, commit history, and PR analysis.
+**GitHub MCP Connector Setup:**
 
-#### GitHub MCP Connector Setup
+1. Go to **Builder > Connectors > + Add connector > MCP tab > GitHub MCP server**. The portal pre-fills `https://api.githubcopilot.com/mcp/` and locks auth to **Bearer token**.
+2. Generate a fine-grained PAT at `github.com/settings/tokens` with `Issues: Read and write` scoped to your repo. Paste it into the PAT field and select **Next**.
+3. Once connected, enable the `create_issue` and `list_issues` MCP tools under **Edit → MCP Tools**, then **Save**.
 
-1. Go to **Builder > Connectors > + Add connector > MCP tab > GitHub MCP server**.
-2. The portal pre-fills the URL as `https://api.githubcopilot.com/mcp/` and locks **Authentication method** to **Bearer token**.
+> **Least-privilege:** Scope the PAT to a single repo with `Issues: Read and write` only — limits the agent's blast radius to issue management.
 
-   Generate a GitHub PAT at `github.com/settings/tokens` with:
-
-   | PAT type | Required scope |
-   |---|---|
-   | **Classic PAT** | `repo` (includes issues read/write) |
-   | **Fine-grained PAT** *(recommended)* | `Issues: Read and write` scoped to `hailugebru/azure-sre-agents-aks` |
-
-   Paste the token into the **Personal access token (PAT) or API key** field and select **Next**.
-
-4. After the connector shows **Connected**, select **Edit** → **MCP Tools** and enable:
-   - `create_issue` *(required)*
-   - `list_issues` *(recommended — lets the agent check for duplicates before filing)*
-   - `get_issue` *(optional)*
-
-5. Select **Save**.
-
-> **Least-privilege note:** A fine-grained PAT scoped to a single repo with only `Issues: Read and write` is the recommended approach for production. It limits the agent's blast radius to issue management in one repository.
-
-> _Portal screenshot: MCP connector list showing `github-mcp` with status **Connected** and tools `create_issue`, `list_issues` selected._  
-> _(See Figure 6 in the [HTML version](./index.html))_
-
-#### Create the `github-issue-tracker` subagent
-
-A dedicated subagent keeps GitHub write access scoped and auditable. The main agent invokes it only after a successful resolution.
-
-1. Go to **Builder > Subagent builder** and select **+ Create subagent**..
+A dedicated `github-issue-tracker` subagent (**Builder > Subagent builder > + Create subagent**) keeps GitHub write access auditable — the main agent invokes it only after a confirmed resolution.
 
 #### What the auto-created issue looks like
 
@@ -428,45 +380,30 @@ kubectl describe nodepool default
 
 ---
 
-## Next Steps & Resources
+## Key Takeaways & Next Steps
 
-In this walkthrough, you:
+Azure SRE Agent detected and resolved two real AKS incidents — CPU starvation (~8 min MTTR) and OOMKilled (~4 min MTTR) — applying 5 patches with zero human interventions, then automatically filed a GitHub issue as a post-incident audit trail.
 
-1. Deployed a production-ready AKS cluster with NAP, Cilium, managed Prometheus, and KEDA
-2. Deployed the AKS Store Demo application across nine microservices
-3. Created an Azure SRE Agent with a User-Assigned Managed Identity, managed resources, and an Azure Monitor webhook trigger
-4. Configured an autonomous Incident Response Plan with domain-specific custom instructions
-5. Watched the agent detect and fix **two real incidents** — CPU starvation (alert-driven, ~8 min MTTR) and OOMKill (chat-driven, ~4 min MTTR) — applying 5 targeted patches with zero human intervention
-6. Configured automatic GitHub issue creation to close the loop from runtime patch to tracked manifest recommendation
+The key insight isn't just speed — it's **consistency**. The agent runs the same investigate → diagnose → remediate → verify → report loop every time, at 3 AM or 3 PM.
 
-The key insight isn't just the speed improvement — it's **consistency**. Azure SRE Agent runs the same structured methodology every time: plan, collect, analyze, act, verify, report. It doesn't skip the verification step at 3 AM, and it delivers the incident report before the on-call engineer has finished reading the alert.
+**Three things to carry forward:**
+
+1. **Azure SRE Agent is a governed incident-response system**, not just an AI chatbot. The real levers are **permission levels** (Reader vs Privileged) and **run modes** (Review vs Autonomous) — not prompt quality.
+2. **Built-in Azure diagnostics cover most of what you need.** Connectors extend the agent to external systems like GitHub and Teams when you're ready.
+3. **Start narrow and expand deliberately.** One resource group, one incident type, Review run mode first. Validate that telemetry flows, RBAC is scoped correctly, and your incident trigger covers the failure modes you care about (`kube_pod_status_phase{phase="Failed"}` alone misses most `CrashLoopBackOff` scenarios) before enabling Autonomous.
 
 ### Extend the demo
 
-- **Add more incident types**: configure alert rules for `CrashLoopBackOff`, `ImagePullBackOff`, and node resource pressure
+- **Broader alert coverage**: add rules for `CrashLoopBackOff`, `ImagePullBackOff`, and node resource pressure
 - **Multi-cluster**: add a second AKS cluster to Managed Resources and watch the agent correlate cross-cluster signals
-- **KEDA + SRE Agent**: let KEDA auto-scale on queue depth while SRE Agent handles pod health issues in parallel
-- **Post-incident automation**: Teams notifications — add the **Send notification (Teams)** connector under the `Notification` tab, create a `teams-notifier` subagent, and add an instruction to ping your on-call channel alongside the GitHub issue
+- **Teams notifications**: add the **Send notification (Teams)** connector and a `teams-notifier` subagent to ping your on-call channel alongside the GitHub issue
 
 ### Resources
 
 | Resource | Link |
 |---|---|
 | Demo repository | [github.com/hailugebru/azure-sre-agents-aks](https://github.com/hailugebru/azure-sre-agents-aks) |
-| Azure SRE Agent documentation | [learn.microsoft.com/azure/sre-agent](https://learn.microsoft.com/azure/sre-agent/) |
+| Azure SRE Agent docs | [learn.microsoft.com/azure/sre-agent](https://learn.microsoft.com/azure/sre-agent/) |
 | AKS Store Demo | [github.com/Azure-Samples/aks-store-demo](https://github.com/Azure-Samples/aks-store-demo) |
-| Node Auto-Provisioning docs | [learn.microsoft.com/azure/aks/node-autoprovision](https://learn.microsoft.com/azure/aks/node-autoprovision) |
+| Node Auto-Provisioning | [learn.microsoft.com/azure/aks/node-autoprovision](https://learn.microsoft.com/azure/aks/node-autoprovision) |
 | KEDA on AKS | [learn.microsoft.com/azure/aks/keda-about](https://learn.microsoft.com/azure/aks/keda-about) |
-
----
-
-## Production Adoption Guidance
-
-Start with one scoped resource group, one incident type, and **Review mode** before expanding to Autonomous response. Validate four things first:
-
-1. The agent can see the right telemetry (Log Analytics workspace connected, relevant metrics flowing)
-2. The RBAC scope is intentionally narrow (use the minimum permission level for your use case)
-3. The incident trigger matches the failure modes you actually care about (`kube_pod_status_phase{phase="Failed"}` alone misses most `CrashLoopBackOff` scenarios)
-4. Post-incident artifacts — GitHub issues, Teams notifications — are actionable for your team
-
-Azure SRE Agent adds the most value when observability, ownership, and operational boundaries are already reasonably mature.

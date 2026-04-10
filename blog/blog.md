@@ -1,6 +1,6 @@
 # Autonomous AKS Incident Response with Azure SRE Agent
 
-**Published:** April 7, 2026 &nbsp;|&nbsp; **Author:** Hailu Gebru, Product Manager — Azure SRE Agent &nbsp;|&nbsp; **Read time:** 15 min  
+**Published:** April 10, 2026 &nbsp;|&nbsp; **Author:** Hailu Gebru, Product Manager — Azure SRE Agent &nbsp;|&nbsp; **Read time:** 18 min  
 **Tags:** AKS, Azure SRE Agent, AI Ops, Node Auto-Provisioning, KEDA, Incident Response
 
 ---
@@ -14,7 +14,7 @@
 5. [Step 2 — Deploy the AKS Store Demo App](#step-2--deploy-the-aks-store-demo-app)
 6. [Step 3 — Configure Azure SRE Agent](#step-3--configure-azure-sre-agent)
    - [Post-Incident GitHub Issue Automation](#post-incident-github-issue-automation)
-7. [Step 4 — See It in Action: Autonomous OOMKilled Recovery](#step-4--see-it-in-action-autonomous-oomkilled-recovery)
+7. [Step 4 — See It in Action: Two Real Incidents, Zero Escalations](#step-4--see-it-in-action-two-real-incidents-zero-escalations)
 8. [Bonus: Node Auto-Provisioning in Action](#bonus-node-auto-provisioning-in-action)
 9. [Next Steps & Resources](#next-steps--resources)
 
@@ -26,13 +26,15 @@ It's 2 AM. Azure Monitor fires a Sev1 alert: pods are crashing in your productio
 
 For teams running containerized workloads on Azure Kubernetes Service (AKS), this manual response cycle is a source of alert fatigue, slow recovery times, and inconsistent remediation quality. **Azure SRE Agent** addresses this head-on: it is an AI-powered operations agent that connects to your Azure resources, receives alerts from Azure Monitor, and executes a structured investigate-diagnose-remediate-verify loop — fully autonomously.
 
-In this post, I'll walk through the complete end-to-end experience: spinning up an AKS cluster with Node Auto-Provisioning (NAP), deploying a realistic demo application, wiring up Azure SRE Agent, and triggering a real OOMKilled incident so you can see the agent resolve it in real time.
+In this post, I'll walk through the complete end-to-end experience: spinning up an AKS cluster with Node Auto-Provisioning (NAP), deploying a realistic demo application, wiring up Azure SRE Agent, and watching it respond to two real production incidents — fully autonomously.
 
 | Metric | Result |
 |---|---|
-| Alert to Full Recovery | **< 2 minutes** |
+| Alert to Full Recovery (Incident 1) | **~8 minutes** |
 | Human Interventions Required | **0** |
-| Pods Recovered Automatically | **100%** |
+| Namespaces Scanned Automatically | **6 (40+ pods)** |
+| Patches Applied Across Both Incidents | **5** |
+| GitHub Issue Auto-Created | **Yes — [#1](https://github.com/hailugebru/azure-sre-agents-aks/issues/1)** |
 
 ---
 
@@ -105,6 +107,7 @@ az aks create \
   --network-plugin azure \
   --network-plugin-mode overlay \
   --network-dataplane cilium \          # eBPF — no kube-proxy
+  --enable-azure-monitor-metrics \      # managed Prometheus
   --generate-ssh-keys
 ```
 
@@ -186,18 +189,23 @@ With the cluster and application running, the next step is to wire up the Azure 
 
 2. **Grant RBAC to the agent's managed identity**
 
+   The creation wizard automatically creates a **User-Assigned Managed Identity (UAMI)** and assigns baseline read roles (Reader, Log Analytics Reader, Monitoring Reader, Monitoring Contributor) at the resource group scope. For AKS incident response with **Privileged** permission level, add these two additional role assignments using the UAMI client ID shown in the portal:
+
    ```bash
-   # Replace with your agent's managed identity object ID
+   # AKS Cluster Admin Role — full kubectl access via managed identity
    az role assignment create \
-       --assignee "<agent-managed-identity-object-id>" \
-       --role "Azure Kubernetes Service Cluster User Role" \
+       --assignee "<uami-client-id>" \
+       --role "Azure Kubernetes Service Cluster Admin Role" \
        --scope "/subscriptions/<sub-id>/resourcegroups/Azure-SRE-Agent-Demo_RG"
 
+   # AKS Contributor — ARM-level read/write on the AKS resource
    az role assignment create \
-       --assignee "<agent-managed-identity-object-id>" \
-       --role "Monitoring Reader" \
+       --assignee "<uami-client-id>" \
+       --role "Azure Kubernetes Service Contributor Role" \
        --scope "/subscriptions/<sub-id>/resourcegroups/Azure-SRE-Agent-Demo_RG"
    ```
+
+   > **Privileged vs. Standard**: Choose **Privileged** when adding the resource group in step 3 — required for the agent to apply patches autonomously. Standard gives read-only access suitable for Monitor Only mode.
 
 3. **Add your resource group as a Managed Resource**  
    In the agent's *Managed Resources* blade, click **+ Add resource** and add `Azure-SRE-Agent-Demo_RG`. The agent now has visibility over every resource in the group — AKS cluster, Log Analytics workspace, and networking resources.
@@ -205,22 +213,22 @@ With the cluster and application running, the next step is to wire up the Azure 
    > _Portal screenshot: Managed Resources blade showing `Azure-SRE-Agent-Demo_RG` with status **Connected**._  
    > _(See Figure 2 in the [HTML version](./index.html))_
 
-4. **Add an Azure Monitor trigger**  
-   Create the pod health alert rule, then configure it to route to the SRE Agent via an Action Group:
+4. **Add an Azure Monitor trigger**
 
-   ```bash
-   az monitor metrics alert create \
-       --name "pod-not-healthy" \
-       --resource-group "Azure-SRE-Agent-Demo_RG" \
-       --scopes "/subscriptions/<sub-id>/.../managedclusters/Azure-SRE-Agent-Demo-Cluster" \
-       --condition "avg kube_pod_status_phase{phase=Failed} > 0" \
-       --severity 1 \
-       --action "sre-agent-action-group" \
-       --evaluation-frequency "1m" \
-       --window-size "5m"
-   ```
+   **Part A — Connect Azure Monitor in the SRE Agent portal:**
+   1. Go to **Builder → Incident platform**.
+   2. Select **Azure Monitor** and turn **off** the *Quickstart response plan* toggle (you will create a custom one in the next step).
+   3. Click **Save**. The portal generates a **webhook URL** — copy it.
 
-   > _Portal screenshot: Triggers blade — Azure Monitor trigger configured with Sev0–Sev2 severity filter and action group webhook._  
+   **Part B — Route the alert to the agent via Azure portal:**
+   1. Open **Azure Portal → Monitor → Alerts → Action groups → + Create**.
+   2. Under **Actions**, set Action type to **Webhook** and paste the webhook URL from Part A.
+   3. Save the Action Group.
+   4. Open the `pod-not-healthy` metric alert rule (scoped to the AKS cluster), attach the Action Group, and save.
+
+   When the metric fires (`kube_pod_status_phase{phase=Failed} > 0`), the webhook delivers the alert payload to the agent, which matches it against your response plans and begins autonomous investigation within seconds.
+
+   > _Portal screenshot: Builder → Incident platform blade showing Azure Monitor connected with the webhook URL and active response plan count._  
    > _(See Figure 3 in the [HTML version](./index.html))_
 
 ### Incident Response Plan: three operating modes
@@ -259,24 +267,48 @@ For AKS pod health alerts in the pets namespace:
 
 With the agent resolving incidents autonomously, the final piece is closing the loop: every autonomous repair should produce a permanent, searchable audit trail in GitHub — eliminating manual post-mortem paperwork.
 
-This requires two configuration steps in the portal at **[sre.azure.com](https://sre.azure.com)**, then one update to the custom instructions above.
+There are two ways to connect the agent to GitHub. **Option A** (Resource Mapping) is the quickest path and was used in production to auto-create [Issue #1](https://github.com/hailugebru/azure-sre-agents-aks/issues/1) after the real incident below. **Option B** (GitHub MCP connector) gives the agent full GitHub API access for code-aware investigations.
 
-#### 1. Add the GitHub MCP connector
+#### Option A: Resource Mapping — Quick Setup
 
-The **GitHub MCP server** connector gives the agent write access to GitHub Issues via the Model Context Protocol.
+Resource Mapping links a GitHub repository to a specific Azure resource. The agent uses the built-in `CreateGithubIssue` tool — no subagent or MCP connector needed.
 
-1. Go to **Builder > Connectors > + Add connector**.
-2. Select the **MCP** tab, then select **GitHub MCP server**.
-3. Choose your authentication method:
+1. In the agent portal, go to **Monitor → Resource mapping**.
+2. Find `azure-sre-agent-demo-cluster` in the list and click it.
+3. Click **Add repository** and enter `https://github.com/hailugebru/azure-sre-agents-aks`.
+4. **Sign in to GitHub** when prompted (one-time OAuth authorization).
+5. Click **Add**.
 
-   | Method | When to use |
+That’s it. After the one-time sign-in, the agent creates issues automatically as part of every autonomous resolution — no further human interaction required.
+
+#### Option B: GitHub MCP Connector — Full GitHub API Accessick Setup
+
+Resource Mapping links a GitHub repository to a specfull GitHub API access — issue creation, code search, commit history, and PR analysis.
+
+1. Go to **Builder > Connectors > + Add connector > MCP tab >  the list and click it.
+3. Click **Add repository** and enter `https://github.com/hailugebru/azure-sre-agents-aks`.
+4. **Sign in to GitHub** when prompted (one-time OAuth authorization).
+5. Click **Add**.
+
+That’s it. After the one-time sign-in, the agent creates issues automatically as part of every autonomous resolution — no further human interaction required.
+
+#### Option B: GitHub MCP Connector — Full GitHub API Access
+
+The **GitHub MCP server** connector gives the agent full GitHub API access — issue creation, code search, commit history, and PR analysis.
+
+1. Go to **Builder > Connectors > + Add connector > MCP tab > GitHub MCP server**.
+3. The portal pre-fills the URL as `https://api.githubcopilot.com/mcp/` and locks **Authentication method** to **Bearer token** — this is expected. The GitHub MCP server only supports PAT-based Bearer token auth; there is no OAuth flow for MCP connectors.
+
+   > **Note:** The OAuth option you may have seen elsewhere applies to the *GitHub OAuth* connector under the **Code Repository** tab, which is for repository indexing only (read-only). It cannot create issues.
+
+   Generate a GitHub PAT at `github.com/settings/tokens` with:
+
+   | PAT type | Required scope |
    |---|---|
-   | **OAuth** | Simplest setup — sign in with your GitHub account in the popup | 
-   | **PAT** | Use when your org enforces SSO or you want a service account token |
+   | **Classic PAT** | `repo` (includes issues read/write) |
+   | **Fine-grained PAT** *(recommended)* | `Issues: Read and write` scoped to `hailugebru/azure-sre-agents-aks` |
 
-   For a PAT, the minimum required scopes are:
-   - **Classic PAT:** `repo` (includes issues read/write)
-   - **Fine-grained PAT:** `Issues: Read and write` on the target repository
+   Paste the token into the **Personal access token (PAT) or API key** field and select **Next**.
 
 4. After the connector shows **Connected**, select **Edit** → **MCP Tools** and enable:
    - `create_issue` *(required)*
@@ -294,155 +326,148 @@ The **GitHub MCP server** connector gives the agent write access to GitHub Issue
 
 A dedicated subagent keeps GitHub write access scoped and auditable. The main agent invokes it only after a successful resolution.
 
-1. Go to **Builder > Subagent builder** and select **+ Create subagent**.
-2. Configure the subagent:
+1. Go to **Builder > Subagent builder** and select **+ Create subagent**..
 
-   | Field | Value |
-   |---|---|
-   | Name | `github-issue-tracker` |
-   | Autonomy | **Autonomous** (must run without waiting for human approval) |
-   | Tools | `create_issue` from the `github-mcp` connection |
+> **Option A vs. Option B:** Option A takes 5 minutes with OAuth and covers the majority of use cases (issue creation per resource). Option B takes ~10 minutes with a PAT but unlocks code search and PR creation for deeper, code-aware investigations.
 
-3. Select **Save**.
+#### What the auto-created issue looks like
 
-The subagent now appears on the Agent Canvas. When the main agent's Incident Response Plan reaches instruction 5, it delegates the issue creation to this subagent, which calls `create_issue` and returns the new issue URL.
+After Incident 1 resolved, the agent automatically filed [Issue #1](https://github.com/hailugebru/azure-sre-agents-aks/issues/1) at `16:01:26 UTC` — no human action. The issue contained:
 
-> _Portal screenshot: Agent Canvas showing `github-issue-tracker` subagent node connected to the `create_issue` tool from `github-mcp`._  
-> _(See Figure 7 in the [HTML version](./index.html))_
+- **Title:** `[AKS Alert] Pod Health Failures - pets namespace - 69e4dbba-6f33-5bc7-1700-c7d5e5b4000b`
+- **Labels:** `aks`, `memory-management`, `pod-health`
+- **Body:** Full incident summary with alert ID and timestamps, all unhealthy pods with failure states, root cause for each failure type, before/after tables for all 5 patches, post-patch `kubectl top` verification for all 9 pods, 7 actionable recommendations (including *“Update source manifests in Git”* and *“Add resource limit validation to the CI/CD pipeline to prevent sub-10m CPU limits from being deployed”*), and a deep link back to the SRE Agent investigation thread for a full audit trail.   {"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/cpu","value":"5m"},
+      {"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/memory","value":"20Mi"}
+    ]'
 
-#### What each created issue looks like
-
-After the OOMKilled incident demo in Step 4, the agent creates a GitHub issue like this:
-
-**Title:** `[SRE-Auto] INC-2026-0407-001 — OOMKilled: order-service memory limit incompatible with Node.js V8 heap`
-
-**Labels:** `incident`, `auto-remediated`
-
-**Body:**
+kubectl get pods -n pets -w
 ```
-## Incident Summary
-- **Incident ID:** INC-2026-0407-001
-- **Alert:** [Sev1] pod-not-healthy
-- **Fired:** 2026-04-07 21:07:13 UTC | **Resolved:** 2026-04-07 21:09:00 UTC
-- **MTTR:** 1m 47s
 
-## Root Cause
-Container memory limit (16Mi) was incompatible with the Node.js V8 old-generation
-heap (--max-old-space-size=64 → 64 MB). Linux OOM killer terminated the process
-(exit code 137) on every startup, causing CrashLoopBackOff.
-
-## Fix Applied
-Patched order-service via rolling update:
-- memory limit: 16Mi → 128Mi
-- memory request: 8Mi → 64Mi
-
-## Post-State
-2/2 pods Running 1/1, 0 restarts. Cluster-wide: 0 unhealthy pods.
-
-## Recommendation
-Update the source manifest in Git — the runtime patch will be overwritten
-on the next CI/CD deploy.
-File: manifests/aks-store/02-order-service.yaml
 ```
+NAME                                  READY   STATUS             RESTARTS   AGE
+makeline-service-59bcdc58fb-845wj     0/1     Error              1          32s
+makeline-service-59bcdc58fb-845wj     0/1     CrashLoopBackOff   1          45s
+```
+
+Within five minutes, Azure Monitor fires the `pod-not-healthy` Sev1 alert (Alert ID `69e4dbba`, fired `15:36:15 UTC`) and the agent begins working immediately.
+
+#### The agent's autonomous investigation
+
+| Time | Phase | Action |
+|---|---|---|
+| T+0s | **Receive** | Alert payload arrives. Agent connects to cluster via managed identity. |
+| T+30s | **Discover** | `kubectl get pods --all-namespaces` — scans 40+ pods across 6 namespaces |
+| T+60s | **Identify** | `makeline-service`: 1 restart, last state `Error`, exit code `1` |
+| T+90s | **Root Cause** | CPU limit `5m` + 6× startup probe `connection refused` events → service cannot bind port fast enough. Exit code `1` (not `137`) rules out OOMKill. |
+| T+180s | **Expand** | `kubectl top pods`: `virtual-customer`, `virtual-worker`, and `mongodb` throttled at 112–200% of CPU limit |
+| T+240s | **Remediate** | 4 patches applied sequentially, each rollout monitored before the next |
+| T+480s | **Verified** | All 9 pods Running/Ready/0 restarts. Zero unhealthy pods cluster-wide. |
+
+#### Signals correlated
+
+| Signal | Value | Conclusion |
+|---|---|---|
+| CPU limit | `5m` (5 millicores) | Insufficient for Go/Gin service startup |
+| Startup probe events | 6× `dial tcp: connection refused` | Service could not bind port under extreme CPU starvation |
+| Exit code | `1` | Process error — not `137`, so not an OOMKill |
+| Container logs (post-restart) | HTTP 200s, healthy | Crash was startup timing, not application bug |
+| `kubectl top` output | 3 pods at 112–200% of limit | Cluster-wide CPU pressure contributing to the health alert |
+
+#### Four patches applied sequentially
+
+| Resource | Type | CPU limit before | CPU limit after | Mem limit before | Mem limit after |
+|---|---|---|---|---|---|
+| `makeline-service` | Deployment | `5m` | `50m` | `20Mi` | `64Mi` |
+| `virtual-customer` | Deployment | `2m` | `10m` | — | — |
+| `virtual-worker` | Deployment | `2m` | `10m` | — | — |
+| `mongodb` | StatefulSet | `25m` | `50m` | — | — |
+
+> _Portal screenshot: Incident History blade showing alert ID `69e4dbba`, Status: Resolved, 4 patches applied, cluster-wide sweep: 0 unhealthy pods._  
+> _(See Figure 5 in the [HTML version](./index.html))_
 
 ---
 
-## Step 4 — See It in Action: Autonomous OOMKilled Recovery
+### Incident 2: OOMKilled — Chat-Driven (MTTR: ~4 minutes)
 
-With everything wired up, let's trigger a real incident by setting the `order-service` memory limit below what its Node.js V8 heap requires.
+Shortly after Incident 1, an engineer noticed `order-service` was unhealthy. **No alert needed** — the agent handles ad-hoc investigations from the chat window too.
 
-### Trigger the incident
+**Trigger the incident.** Deploy `order-service-changed.yaml`, which has a 20Mi memory limit — far too low for Node.js/Fastify:
 
 ```powershell
-# Set order-service memory limit to 16Mi — incompatible with 64MB V8 heap
-kubectl patch deployment order-service -n pets --type='json' `
-    -p='[{"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/memory","value":"16Mi"}]'
+kubectl apply -f .\manifests\aks-store\order-service-changed.yaml -n pets
 
-# Watch pods enter CrashLoopBackOff
 kubectl get pods -n pets -w
 ```
 
 ```
 NAME                               READY   STATUS             RESTARTS   AGE
-order-service-5f9d44b6c8-4bvsr     0/1     OOMKilled          1          12s
-order-service-5f9d44b6c8-4bvsr     0/1     CrashLoopBackOff   2          28s
+order-service-75b944dd4b-m8td6     0/1     OOMKilled          1          18s
+order-service-75b944dd4b-m8td6     0/1     CrashLoopBackOff   4          72s
 ```
 
-Within five minutes, Azure Monitor fires the Sev1 alert and the SRE Agent begins working immediately.
+**Chat prompt to the agent:**
 
-### The agent's autonomous response — T+0s to T+107s
+```
+The order-service pod in the pets namespace is not healthy.
+Please investigate, identify the root cause, and fix it.
+```
+
+#### The agent's chat-driven response
 
 | Time | Phase | Action |
 |---|---|---|
-| T+0s | **Plan** | Receives alert payload. Builds investigation plan: scan all namespaces, prioritise OOMKilled/CrashLoopBackOff, correlate root cause, apply minimal fix, verify. |
-| T+5s | **Discover** | Connects to cluster via managed identity. Runs `kubectl get pods --all-namespaces`, filters for crash signals and restart counts > 0. |
-| T+10s | **Identify** | Finds `order-service-5f9d44b6c8-4bvsr` and `order-service-5f9d44b6c8-fl782` in `pets` namespace — 14 restarts each, `Last State: OOMKilled`. |
-| T+20s | **Root Cause** | Correlates 4 signals: Exit Code 137 + OOMKilled + 16Mi limit + `NODE_OPTIONS=--max-old-space-size=64`. V8 heap requires 64 MB — 4× the container budget. |
-| T+30s | **Remediate** | Applies minimal JSON patch: memory limit 16Mi → 128Mi, request 8Mi → 64Mi. Triggers zero-downtime rolling update. |
-| T+107s | **Verified** | Both pods Running 1/1, zero restarts. Cluster-wide sweep: zero unhealthy pods. Incident report published. |
+| T+0s | **Receive** | Chat message received. Runs `kubectl describe pod order-service-75b944dd4b-m8td6 -n pets` |
+| T+15s | **Identify** | Last state: `OOMKilled`, exit code `137`. Memory limit: `20Mi` |
+| T+30s | **Correlate** | Checks ConfigMap: no `NODE_OPTIONS`, no heap flags. Zero log output (process killed before first write). Prior healthy pod baseline: 50Mi at runtime. |
+| T+60s | **Remediate** | Patches memory limit `20Mi → 128Mi` (2.5× the 50Mi runtime baseline), request `10Mi → 50Mi` |
+| T+240s | **Verified** | New pod `order-service-7d9d56dfd6-nfhh2` Running, 74Mi/128Mi (58% utilization), 0 restarts |
 
-### Root cause signals correlated by the agent
+#### Signals correlated
 
-| Signal | Observed Value | What It Means |
+| Signal | Value | Conclusion |
 |---|---|---|
-| Container memory limit | `16Mi` | Maximum memory before Linux OOM killer terminates the process |
-| `NODE_OPTIONS` | `--max-old-space-size=64` | V8 old-generation heap capped at 64 MB — 4× the limit |
-| Exit code | `137` | SIGKILL sent by cgroup OOM killer (128 + 9) |
-| Pod last state | `OOMKilled` | Kubernetes confirmed the termination reason |
+| Exit code | `137` (SIGKILL) | OOM killer — not an application error |
+| Container logs | **Empty — zero output** | Process killed by kernel before Node.js could start |
+| `NODE_OPTIONS` in ConfigMap | Not present | Not a V8 heap mismatch — pure container limit issue |
+| Memory limit | `20Mi` | 12.8× below the 50Mi the healthy pod used at runtime |
 
-### The exact patch applied
+#### Patch applied
 
-```bash
-kubectl patch deployment order-service -n pets --type='json' -p='[
-    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory",   "value": "128Mi"},
-    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "64Mi"}
-  ]'
-# deployment.apps/order-service patched
+| Field | Before | After | Rationale |
+|---|---|---|---|
+| Memory limit | `20Mi` | `128Mi` | 2.5× the observed 50Mi baseline — minimum necessary headroom |
+| Memory request | `10Mi` | `50Mi` | Aligned to observed runtime usage |
 
-kubectl rollout status deployment/order-service -n pets
-# deployment "order-service" successfully rolled out
-```
+---
 
-### Before vs. After
+### Combined results
 
-| | Before (Crashing) | After (Recovered) |
+| | Incident 1 | Incident 2 |
 |---|---|---|
-| Pod status | CrashLoopBackOff | Running 1/1 |
-| Restarts | 14 each | 0 |
-| Memory limit | 16Mi | 128Mi |
-| Memory request | 8Mi | 64Mi |
-| V8 heap vs limit | 64 MB (4× over) | 64 MB (fits) |
-| Cluster health | 2 unhealthy pods | 0 unhealthy pods |
+| **Trigger** | Azure Monitor alert (automated) | Engineer chat (ad-hoc) |
+| **Failure mode** | CPU starvation — startup probe timeouts | OOMKilled — memory limit too low for Node.js |
+| **Key exit code** | `1` (process error) | `137` (SIGKILL from OOM killer) |
+| **Patches applied** | 4 (3 Deployments + 1 StatefulSet) | 1 (Deployment) |
+| **MTTR** | ~8 minutes | ~4 minutes |
+| **Additional findings** | 3 other pods CPU-throttled at 112–200% | CPU at limit (101m/100m) — flagged for monitoring |
+| **Post-state** | All 9 pods Running, 0 restarts | All 9 pods Running, 0 restarts |
 
-### The agent's incident report
+### Automated GitHub issue — [#1](https://github.com/hailugebru/azure-sre-agents-aks/issues/1)
 
-> _Portal screenshot: Incident History blade showing INC-2026-0407-001 — Status: Resolved, MTTR: 1m 47s, Root Cause: OOMKilled, Action: patch applied, Recommendation: update source manifest in Git._  
-> _(See Figure 5 in the [HTML version](./index.html))_
-
-**Incident INC-2026-0407-001 — Summary**
-
-| Field | Value |
-|---|---|
-| Alert | [Sev1] pod-not-healthy |
-| Resource | Azure-SRE-Agent-Demo-Cluster (Azure-SRE-Agent-Demo_RG) |
-| Fired | 2026-04-07 21:07:13 UTC |
-| Resolved | 2026-04-07 21:09:00 UTC |
-| Root Cause | OOMKilled — container memory limit (16Mi) incompatible with Node.js V8 heap (64MB) |
-| Action Taken | Patched order-service: memory limit 16Mi → 128Mi, request 8Mi → 64Mi |
-| Post-State | 2/2 pods Running 1/1, 0 restarts. Cluster-wide: 0 unhealthy pods. |
-| Recommendation | Update source manifest in Git — runtime patch will be overwritten on next CI/CD deploy. |
+After verifying Incident 1, the agent automatically created [GitHub Issue #1](https://github.com/hailugebru/azure-sre-agents-aks/issues/1) at `16:01:26 UTC` with no human action. The issue includes before/after tables for all 5 patches, post-patch `kubectl top` output for all 9 pods, 7 actionable recommendations, and a deep link to the investigation thread — giving the team everything they need to update the source manifests permanently.
 
 ### Traditional response vs. Azure SRE Agent
 
-| Traditional On-Call | Azure SRE Agent (Autonomous) |
-|---|---|
-| ❌ Alert pages engineer at 2 AM | ✅ Agent starts immediately |
-| ❌ Opens laptop, connects VPN | ✅ Already authenticated via managed identity |
-| ❌ Gets kubeconfig, scans namespaces | ✅ Scans all namespaces in parallel |
-| ❌ Looks up exit code 137 | ✅ Correlates exit codes, specs, and env vars |
-| ❌ Applies fix, monitors rollout | ✅ Applies minimal reversible patch, verifies rollout |
-| ❌ Writes incident summary next morning | ✅ Structured report delivered instantly |
-| ❌ **Typical MTTR: 30–60 minutes** | ✅ **MTTR: 1 minute 47 seconds** |
+| | Traditional On-Call | Azure SRE Agent |
+|---|---|---|
+| Alert → response begins | 5–15 min (page and wake up) | Instant (webhook) |
+| Connect to cluster | 3–10 min (VPN, kubeconfig) | 0 min (managed identity, always connected) |
+| Scan 40+ pods across 6 namespaces | 10–20 min (sequential `kubectl`) | ~1 min (automated, parallel) |
+| Correlate CPU limits, events, logs | 10–15 min (domain knowledge required) | ~2 min (structured checklist, rules out wrong hypotheses) |
+| Apply 4 patches + monitor each rollout | 10–20 min | ~3 min (auto-generated, sequential rollouts) |
+| Cluster-wide verification sweep | 5–10 min | ~1 min |
+| Incident report + GitHub issue | 15–30 min next morning | Automatic, complete in minutes |
+| **Total MTTR** | **60–120 minutes** | **~8 minutes (7–15× faster)** |
 
 ---
 
@@ -465,11 +490,12 @@ kubectl describe nodepool default
 
 In this walkthrough, you:
 
-1. Deployed a production-ready AKS cluster with NAP, Cilium, and KEDA
+1. Deployed a production-ready AKS cluster with NAP, Cilium, managed Prometheus, and KEDA
 2. Deployed the AKS Store Demo application across nine microservices
-3. Created an Azure SRE Agent with managed identity, managed resources, and an Azure Monitor trigger
-4. Configured an autonomous Incident Response Plan with custom instructions
-5. Watched the agent resolve a real OOMKilled incident in under two minutes with zero human intervention
+3. Created an Azure SRE Agent with a User-Assigned Managed Identity, managed resources, and an Azure Monitor webhook trigger
+4. Configured an autonomous Incident Response Plan with domain-specific custom instructions
+5. Watched the agent detect and fix **two real incidents** — CPU starvation (alert-driven, ~8 min MTTR) and OOMKill (chat-driven, ~4 min MTTR) — applying 5 targeted patches with zero human intervention
+6. Configured automatic GitHub issue creation to close the loop from runtime patch to tracked manifest recommendation
 
 The key insight isn't just the speed improvement — it's **consistency**. Azure SRE Agent runs the same structured methodology every time: plan, collect, analyze, act, verify, report. It doesn't skip the verification step at 3 AM, and it delivers the incident report before the on-call engineer has finished reading the alert.
 

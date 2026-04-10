@@ -17,6 +17,7 @@ az aks create `
   --network-plugin azure `
   --network-plugin-mode overlay `
   --network-dataplane cilium `
+  --enable-azure-monitor-metrics `
   --generate-ssh-keys
 
 # Get cluster credentials

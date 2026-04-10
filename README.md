@@ -59,6 +59,7 @@ Loads shared environment variables (`$SUBSCRIPTION_ID`, `$RESOURCE_GROUP`, `$LOC
   - **NAP enabled** (`--node-provisioning-mode Auto`)
   - Azure CNI Overlay networking
   - Cilium dataplane
+  - **Managed Prometheus** (`--enable-azure-monitor-metrics`)
 - Downloads cluster credentials to your kubeconfig
 
 > **Note:** Cluster creation takes ~5-10 minutes.
@@ -155,12 +156,15 @@ Run the helper script first to print the configuration checklist:
 
 1. Go to **Builder > Connectors > + Add connector**
 2. Select the **MCP** tab → **GitHub MCP server**
-3. Authenticate via **OAuth** (sign in with your GitHub account) or supply a **PAT**
+3. The portal pre-fills `https://api.githubcopilot.com/mcp/` and locks **Authentication method** to **Bearer token** — this is expected. MCP connectors use PAT/Bearer token, not OAuth.
+   Generate a PAT at `github.com/settings/tokens` and paste it into the **PAT or API key** field.
 
    | PAT type | Required scope |
    |---|---|
    | Classic | `repo` |
-   | Fine-grained | `Issues: Read and write` on `hailugebru/azure-sre-agents-aks` |
+   | Fine-grained *(recommended)* | `Issues: Read and write` scoped to `hailugebru/azure-sre-agents-aks` |
+
+   > **Note:** The GitHub OAuth connector (Code Repository tab) is read-only. It cannot create issues — use the MCP connector here.
 
 4. Select **Edit** on the new connector → **MCP Tools** → enable `create_issue` (and optionally `list_issues`)
 5. Select **Save**

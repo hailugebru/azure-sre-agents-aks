@@ -2,15 +2,13 @@
 
 **Tags:** AKS, Azure SRE Agent, AI Ops, Incident Response, Node Auto-Provisioning, KEDA
 
-> **Demo scope:** This walkthrough uses Azure SRE Agent with **Privileged** permissions and **Autonomous** run mode against a dedicated demo resource group. Azure SRE Agent separates permission levels (Reader, Privileged) from run modes (Review, Autonomous), so the safest production rollout is to start narrow and expand deliberately.
-
----
+> **Demo scope:** This walkthrough uses Azure SRE Agent with **Privileged** permissions and **Autonomous** run mode against a dedicated demo resource group. Azure SRE Agent separates **permission levels** (`Reader`, `Privileged`) from **run modes** (`Review`, `Autonomous`), so the safest production rollout is to start narrow and expand deliberately.
 
 ## Introduction
 
-It's 2 AM. A Sev1 alert fires on AKS. In many environments, that still means waking an engineer, correlating logs and metrics, running kubectl, applying a fix, and then documenting what happened. That process is slow, inconsistent, and expensive in human attention.
+It’s 2 AM. A Sev1 alert fires on AKS. In many environments, that still means waking an engineer, correlating logs and metrics, running `kubectl`, applying a fix, and then documenting what happened. That process is slow, inconsistent, and expensive in human attention.
 
-Azure SRE Agent is designed to reduce that toil. It can receive incidents, investigate Azure-native telemetry, reason over infrastructure state, propose or execute mitigations, verify the outcome, and capture the result as an operational artifact. In this demo, Azure Monitor acts as the incident platform, Azure diagnostics come from the agent's built-in Azure capabilities, and GitHub is added as an external system through a connector.
+Azure SRE Agent is designed to reduce that toil. It can receive incidents, investigate Azure-native telemetry, reason over infrastructure state, propose or execute mitigations, verify the outcome, and capture the result as an operational artifact. In this demo, Azure Monitor acts as the **incident platform**, Azure diagnostics come from the agent’s built-in Azure capabilities, and GitHub is added as an external system through a connector.
 
 This walkthrough shows that end-to-end flow on Azure Kubernetes Service (AKS): a lightweight environment setup, Azure SRE Agent configuration, and two real Kubernetes failure modes resolved without human intervention.
 
@@ -24,7 +22,7 @@ This walkthrough shows that end-to-end flow on Azure Kubernetes Service (AKS): a
 | Patches applied across both incidents | **5** |
 | Post-incident GitHub issue | **Automatically created** |
 
-> These outcomes reflect a single controlled lab run on April 10, 2026. MTTR will vary based on telemetry latency, cluster size, and incident type.
+> _These outcomes reflect a single controlled lab run on April 10, 2026. MTTR will vary based on telemetry latency, cluster size, and incident type._
 
 ---
 
@@ -35,10 +33,10 @@ Azure SRE Agent has five concepts that matter most in an AKS incident workflow:
 - **Incident platform** — where incidents originate. In this demo, that is Azure Monitor.
 - **Built-in Azure capabilities** — the agent can use Azure Monitor, Log Analytics, Azure Resource Graph, Azure CLI/ARM, and AKS diagnostics without requiring external connectors.
 - **Connectors** — these extend the agent to external systems such as GitHub, Teams, Kusto, and MCP servers.
-- **Permission levels** — Reader for investigation and read-oriented access, Privileged for operational changes when allowed.
-- **Run modes** — Review for approval-gated execution and Autonomous for direct execution.
+- **Permission levels** — `Reader` for investigation and read-oriented access, `Privileged` for operational changes when allowed.
+- **Run modes** — `Review` for approval-gated execution and `Autonomous` for direct execution.
 
-That model matters more than any single prompt. If readers take one thing from this post, it should be this: Azure SRE Agent is a governed incident-response system, not just a conversational assistant.
+That model matters more than any single prompt. If readers take one thing from this post, it should be this: **Azure SRE Agent is a governed incident-response system, not just a conversational assistant.**
 
 ---
 
@@ -46,21 +44,21 @@ That model matters more than any single prompt. If readers take one thing from t
 
 The demo combines three layers:
 
-- an AKS cluster configured for modern scaling and networking patterns,
-- the AKS Store sample application,
-- Azure SRE Agent integrated with Azure Monitor for incident-triggered investigation and remediation.
+1. an AKS cluster configured for modern scaling and networking patterns,
+2. the AKS Store sample application,
+3. Azure SRE Agent integrated with Azure Monitor for incident-triggered investigation and remediation.
 
-```
+```text
 Azure Monitor  →  Action Group  →  Azure SRE Agent  →  AKS Cluster
 (Metric alert)    (Webhook)        (Investigate +       (NAP + Cilium
                                     Fix + Verify)         + KEDA)
 ```
 
-The AKS cluster uses Node Auto-Provisioning (NAP), which is built on Karpenter in AKS, along with Azure CNI Overlay, Cilium, and managed Prometheus metrics. NAP and Azure SRE Agent are complementary but separate: NAP manages infrastructure capacity, while the agent investigates and remediates incidents.
+The AKS cluster uses **Node Auto-Provisioning (NAP)**, which is built on Karpenter in AKS, along with Azure CNI Overlay, Cilium, and managed Prometheus metrics. NAP and Azure SRE Agent are complementary but separate: NAP manages infrastructure capacity, while the agent investigates and remediates incidents.
 
-The application layer uses the AKS Store Demo, which gives a realistic mix of stateless services, stateful dependencies, and event-driven workers. KEDA scales `virtual-worker` on RabbitMQ queue depth, adding workload behavior the agent can observe during incident handling. In AKS, KEDA is available as a managed add-on for event-driven autoscaling.
+The application layer uses the **AKS Store Demo**, which gives a realistic mix of stateless services, stateful dependencies, and event-driven workers. KEDA scales `virtual-worker` on RabbitMQ queue depth, adding workload behavior the agent can observe during incident handling.
 
-> **Important:** `kube_pod_status_phase{phase="Failed"}` is useful, but it does not cover every Kubernetes failure mode. `CrashLoopBackOff` is a container waiting reason, not a pod phase, so production-grade alerting should combine pod phase, waiting reason, termination reason, and node health signals.
+> **Important:** `kube_pod_status_phase{phase="Failed"}` is useful, but it does not cover every Kubernetes failure mode. `CrashLoopBackOff` is a **container waiting reason**, not a pod phase, so production-grade alerting should combine pod phase, waiting reason, termination reason, and node health signals.
 
 ---
 
@@ -68,10 +66,9 @@ The application layer uses the AKS Store Demo, which gives a realistic mix of st
 
 If you want to reproduce the demo, the repo is here:
 
-> **📦 Demo repository:** [github.com/hailugebru/azure-sre-agents-aks](https://github.com/hailugebru/azure-sre-agents-aks)
+**Demo repository:** `https://github.com/hailugebru/azure-sre-agents-aks`
 
-**You need:**
-
+You need:
 - an Azure subscription with AKS deployment permissions,
 - Azure CLI with `aks-preview`,
 - `kubectl` and PowerShell 7+,
@@ -83,7 +80,7 @@ cd azure-sre-agents-aks
 notepad 00-variables.ps1
 ```
 
-> **Enterprise note:** If your environment uses outbound filtering or proxy controls, allow `*.azuresre.ai`. You also need sufficient Azure RBAC rights to create role assignments for the agent's managed identity.
+> **Enterprise note:** If your environment uses outbound filtering or proxy controls, allow `*.azuresre.ai`. You also need sufficient Azure RBAC rights to create role assignments for the agent’s managed identity.
 
 ### AKS cluster
 
@@ -108,15 +105,15 @@ That is enough to create a realistic AKS environment for the incident flows belo
 
 ## Configure Azure SRE Agent
 
-Azure SRE Agent setup in this demo comes down to four decisions: identity, scope, incident routing, and execution control.
+Azure SRE Agent setup in this demo comes down to four decisions: **identity**, **scope**, **incident routing**, and **execution control**.
 
 ### 1) Create the agent
 
-Create an Azure SRE Agent resource in the portal and scope it to the demo resource group. During deployment, Azure SRE Agent creates two managed identities: a user-assigned managed identity (UAMI) that you use for RBAC and connector scenarios, and a system-assigned identity used internally by the service.
+Create an Azure SRE Agent resource in the portal and scope it to the demo resource group. During deployment, Azure SRE Agent creates two managed identities: a **user-assigned managed identity (UAMI)** that you use for RBAC and connector scenarios, and a system-assigned identity used internally by the service.
 
 ### 2) Grant the right access
 
-Azure SRE Agent uses the UAMI for Azure resource access. Core monitoring roles are assigned during setup, and additional roles depend on your permission level and the resource types in your managed scope. In this demo, I added AKS-specific rights so the agent could perform cluster remediation. Treat those extra assignments as scenario-specific, not a universal production baseline. Azure SRE Agent documents the permission model as Reader and Privileged, and those permissions are separate from execution behavior.
+Azure SRE Agent uses the UAMI for Azure resource access. Core monitoring roles are assigned during setup, and additional roles depend on your **permission level** and the resource types in your managed scope. In this demo, I added AKS-specific rights so the agent could perform cluster remediation. Treat those extra assignments as **scenario-specific**, not a universal production baseline.
 
 ```bash
 az role assignment create \
@@ -136,7 +133,7 @@ Managed resource groups define the Azure scope the agent can investigate. Diagno
 
 ### 4) Connect Azure Monitor as the incident platform
 
-Configure Azure Monitor in the Azure SRE Agent portal, copy the generated webhook URL, and route your AKS alert to it through an Azure Monitor Action Group. When the alert fires, Azure Monitor sends the incident payload to the agent, which evaluates it against the response plan and starts investigating. Azure Monitor is the incident platform in this design; it is not just another connector.
+Configure Azure Monitor in the Azure SRE Agent portal, copy the generated webhook URL, and route your AKS alert to it through an Azure Monitor Action Group. When the alert fires, Azure Monitor sends the incident payload to the agent, which evaluates it against the response plan and starts investigating. Azure Monitor is the **incident platform** in this design; it is not just another connector.
 
 ### Operating model: permissions and run modes
 
@@ -147,25 +144,24 @@ For production adoption, think in two layers:
 
 A pragmatic rollout looks like this:
 
-- Start: Reader + Review
-- Then: Privileged + Review
-- Finally: Privileged + Autonomous for narrow, trusted incident paths
+- **Start:** `Reader` + `Review`
+- **Then:** `Privileged` + `Review`
+- **Finally:** `Privileged` + `Autonomous` for narrow, trusted incident paths
 
 ### Custom instructions
 
 For this demo, I gave the agent explicit instructions for AKS pod health investigations:
 
-```
+```text
 For AKS pod health alerts in the pets namespace:
 1. Scan all namespaces for unhealthy pods first.
 2. Prioritise OOMKilled and CrashLoopBackOff.
 3. For OOMKilled: correlate NODE_OPTIONS / JVM flags against container memory limits before adjusting.
 4. After any patch, wait for rollout, then verify cluster-wide pod health.
-5. After successful resolution, create a GitHub issue with the incident ID, root cause, patch applied,
-   and a recommendation to update the source manifest in Git.
+5. After successful resolution, create a GitHub issue with the incident ID, root cause, patch applied, and a recommendation to update the source manifest in Git.
 ```
 
-> These instructions shape the workflow, but they do not replace RBAC, telemetry quality, or actual tool availability.
+These instructions shape the workflow, but they do not replace RBAC, telemetry quality, or actual tool availability.
 
 ### Post-incident GitHub issue
 
@@ -177,8 +173,8 @@ After remediation, I had the agent create a GitHub issue with the root cause, pa
 
 These incidents happened on the same cluster in one session and show the two most common ways teams use Azure SRE Agent on AKS:
 
-- incident-triggered automation
-- ad hoc chat investigation
+1. **incident-triggered automation**
+2. **ad hoc chat investigation**
 
 ### Incident 1 — CPU starvation (alert-driven, ~8 min MTTR)
 
@@ -241,7 +237,7 @@ After Incident 1, the agent automatically created a GitHub issue with the incide
 
 ## Optional: Node Auto-Provisioning in Action
 
-NAP handles infrastructure elasticity underneath the incident workflow. In this demo, I biased provisioning toward Arm64-capable Azure Linux nodes to explore cost-efficient scale-out behavior. Microsoft's AKS guidance describes Arm64 VMs as delivering up to 50% better price-performance than comparable x86 VMs for scale-out workloads.
+NAP handles infrastructure elasticity underneath the incident workflow. In this demo, I biased provisioning toward Arm64-capable Azure Linux nodes to explore cost-efficient scale-out behavior. Microsoft’s AKS guidance describes Arm64 VMs as delivering up to 50% better price-performance than comparable x86 VMs for scale-out workloads.
 
 ```powershell
 .\05-arm-nodepool.ps1
@@ -256,13 +252,19 @@ kubectl describe nodepool default
 
 Azure SRE Agent resolved two real AKS incidents in this lab — one alert-driven, one chat-driven — and then created a post-incident GitHub issue to preserve the outcome.
 
-The key value is not just speed. It is consistency: investigate, diagnose, remediate, verify, report.
+The key value is not just speed. It is **consistency**:
+
+- investigate,
+- diagnose,
+- remediate,
+- verify,
+- report.
 
 ### Three things to carry forward
 
-1. **Azure SRE Agent is a governed incident-response system**, not just a chatbot. The most important controls are permission levels and run modes.
+1. **Azure SRE Agent is a governed incident-response system, not just a chatbot.** The most important controls are **permission levels** and **run modes**.
 2. **Built-in Azure diagnostics cover most of the core workflow.** Use connectors when you want the agent to extend into systems such as GitHub or Teams.
-3. **Start narrow.** One resource group, one incident type, Review first, then expand once telemetry, RBAC, and trigger coverage are validated.
+3. **Start narrow.** One resource group, one incident type, `Review` first, then expand once telemetry, RBAC, and trigger coverage are validated.
 
 ### Next steps
 
@@ -272,10 +274,8 @@ The key value is not just speed. It is consistency: investigate, diagnose, remed
 
 ### Resources
 
-| Resource | Link |
-|---|---|
-| Demo repo | [github.com/hailugebru/azure-sre-agents-aks](https://github.com/hailugebru/azure-sre-agents-aks) |
-| Azure SRE Agent docs | [learn.microsoft.com/azure/sre-agent](https://learn.microsoft.com/azure/sre-agent/) |
-| AKS Store Demo | [github.com/Azure-Samples/aks-store-demo](https://github.com/Azure-Samples/aks-store-demo) |
-| Node Auto-Provisioning | [learn.microsoft.com/azure/aks/node-autoprovision](https://learn.microsoft.com/azure/aks/node-autoprovision) |
-| KEDA on AKS | [learn.microsoft.com/azure/aks/keda-about](https://learn.microsoft.com/azure/aks/keda-about) |
+- Demo repo: `https://github.com/hailugebru/azure-sre-agents-aks`
+- Azure SRE Agent docs: `https://learn.microsoft.com/azure/sre-agent/`
+- AKS Store Demo: `https://github.com/Azure-Samples/aks-store-demo`
+- Node Auto-Provisioning: `https://learn.microsoft.com/azure/aks/node-autoprovision`
+- KEDA on AKS: `https://learn.microsoft.com/azure/aks/keda-about`

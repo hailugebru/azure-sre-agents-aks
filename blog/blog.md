@@ -329,27 +329,14 @@ makeline-service-59bcdc58fb-845wj     0/1     CrashLoopBackOff   1          45s
 
 Within five minutes, Azure Monitor fires the `pod-not-healthy` Sev1 alert (Alert ID `69e4dbba`, fired `15:36:15 UTC`) and the agent begins working immediately.
 
-#### The agent's autonomous investigation
+#### What the agent did
 
-| Time | Phase | Action |
-|---|---|---|
-| T+0s | **Receive** | Alert payload arrives. Agent connects to cluster via managed identity. |
-| T+30s | **Discover** | `kubectl get pods --all-namespaces` — scans 40+ pods across 6 namespaces |
-| T+60s | **Identify** | `makeline-service`: 1 restart, last state `Error`, exit code `1` |
-| T+90s | **Root Cause** | CPU limit `5m` + 6× startup probe `connection refused` events → service cannot bind port fast enough. Exit code `1` (not `137`) rules out OOMKill. |
-| T+180s | **Expand** | `kubectl top pods`: `virtual-customer`, `virtual-worker`, and `mongodb` throttled at 112–200% of CPU limit |
-| T+240s | **Remediate** | 4 patches applied sequentially, each rollout monitored before the next |
-| T+480s | **Verified** | All 9 pods Running/Ready/0 restarts. Zero unhealthy pods cluster-wide. |
-
-#### Signals correlated
-
-| Signal | Value | Conclusion |
-|---|---|---|
-| CPU limit | `5m` (5 millicores) | Insufficient for Go/Gin service startup |
-| Startup probe events | 6× `dial tcp: connection refused` | Service could not bind port under extreme CPU starvation |
-| Exit code | `1` | Process error — not `137`, so not an OOMKill |
-| Container logs (post-restart) | HTTP 200s, healthy | Crash was startup timing, not application bug |
-| `kubectl top` output | 3 pods at 112–200% of limit | Cluster-wide CPU pressure contributing to the health alert |
+| Phase | Action |
+|---|---|
+| **Discover** | Scanned 40+ pods across 6 namespaces; isolated `makeline-service` (1 restart, exit code `1`) |
+| **Root cause** | CPU limit `5m` caused 6× startup probe failures (`connection refused`) — port bind timeout. Exit code `1` (not `137`) ruled out OOMKill. |
+| **Expand** | `kubectl top` found 3 more pods CPU-throttled at 112–200% of limit |
+| **Remediate → Verify** | 4 patches applied sequentially; all 9 pods Running/0 restarts cluster-wide |
 
 #### Four patches applied sequentially
 
@@ -390,24 +377,13 @@ The order-service pod in the pets namespace is not healthy.
 Please investigate, identify the root cause, and fix it.
 ```
 
-#### The agent's chat-driven response
+#### What the agent did
 
-| Time | Phase | Action |
-|---|---|---|
-| T+0s | **Receive** | Chat message received. Runs `kubectl describe pod order-service-75b944dd4b-m8td6 -n pets` |
-| T+15s | **Identify** | Last state: `OOMKilled`, exit code `137`. Memory limit: `20Mi` |
-| T+30s | **Correlate** | Checks ConfigMap: no `NODE_OPTIONS`, no heap flags. Zero log output (process killed before first write). Prior healthy pod baseline: 50Mi at runtime. |
-| T+60s | **Remediate** | Patches memory limit `20Mi → 128Mi` (conservative headroom above the observed 50Mi runtime baseline), request `10Mi → 50Mi` |
-| T+240s | **Verified** | New pod `order-service-7d9d56dfd6-nfhh2` Running, 74Mi/128Mi (58% utilization), 0 restarts |
-
-#### Signals correlated
-
-| Signal | Value | Conclusion |
-|---|---|---|
-| Exit code | `137` (SIGKILL) | OOM killer — not an application error |
-| Container logs | **Empty — zero output** | Process killed by kernel before Node.js could start |
-| `NODE_OPTIONS` in ConfigMap | Not present | Not a V8 heap mismatch — pure container limit issue |
-| Memory limit | `20Mi` | 12.8× below the 50Mi the healthy pod used at runtime |
+| Phase | Action |
+|---|---|
+| **Identify** | `kubectl describe` confirmed `OOMKilled`, exit code `137`, memory limit `20Mi` |
+| **Root cause** | Empty container logs (killed before first write) + no `NODE_OPTIONS` in ConfigMap ruled out V8 heap misconfiguration — the `20Mi` limit was 12.8× below the pod's observed 50Mi runtime baseline |
+| **Remediate → Verify** | Memory limit patched `20Mi → 128Mi`; new pod Running at 74Mi/128Mi (58% utilization), 0 restarts |
 
 #### Patch applied
 

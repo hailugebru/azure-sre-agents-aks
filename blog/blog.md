@@ -128,16 +128,6 @@ az aks create \
 > **💡 Why Cilium?**  
 > The `--network-dataplane cilium` flag replaces the legacy iptables/kube-proxy stack with eBPF programs running directly in the Linux kernel. The result: lower CPU overhead for services with many endpoints, native network policy enforcement, and better observability via Hubble. This is a well-supported modern AKS networking configuration — see the [AKS networking docs](https://learn.microsoft.com/azure/aks/azure-cni-overlay) for the latest guidance.
 
-### Taint the system node pool to activate NAP
-
-```powershell
-.\04-setup-nap.ps1
-
-# Watch NAP provision nodes in real time
-kubectl get events -A --field-selector source=karpenter -w
-kubectl get nodes,pods -n pets -o wide -w
-```
-
 ---
 
 ## Step 2 — Deploy the AKS Store Demo App

@@ -1,6 +1,5 @@
 # Autonomous AKS Incident Response with Azure SRE Agent
 
-**Published:** April 10, 2026 | **Author:** Hailu Kassa, Senior Cloud Solution Architect | **Read time:** 18 min  
 **Tags:** AKS, Azure SRE Agent, AI Ops, Node Auto-Provisioning, KEDA, Incident Response
 
 > **Demo scope:** This walkthrough configures Azure SRE Agent with **Privileged** permissions and **Autonomous** run mode against a dedicated demo resource group. Validate these patterns against your organization's RBAC, networking, and change-control requirements before production adoption.

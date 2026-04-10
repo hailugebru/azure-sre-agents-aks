@@ -5,7 +5,7 @@
 # ============================================================
 
 # Azure
-$SUBSCRIPTION_ID = "dd2c8f4a-2b44-45a8-9e39-52e667cbd854"  # <-- replace
+$SUBSCRIPTION_ID = "sub-Id"  # <-- replace
 $RESOURCE_GROUP  = "Azure-SRE-Agent-Demo_RG"
 $LOCATION        = "canadacentral"
 $CLUSTER_NAME    = "Azure-SRE-Agent-Demo-Cluster"

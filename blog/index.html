@@ -376,7 +376,8 @@
     <li><a href="#cluster">Step 1 &mdash; Deploy an AKS Cluster with NAP</a></li>
     <li><a href="#app">Step 2 &mdash; Deploy the AKS Store Demo App</a></li>
     <li><a href="#agent-setup">Step 3 &mdash; Configure Azure SRE Agent</a></li>
-    <li><a href="#in-action">Step 4 &mdash; See It in Action: Autonomous OOMKilled Recovery</a></li>
+    <li><a href="#github">&nbsp;&nbsp;&#8627; Post-Incident GitHub Issue Automation</a></li>
+    <li><a href="#in-action">Step 4 &mdash; Two Real Incidents, Zero Escalations</a></li>
     <li><a href="#nap">Bonus: Node Auto-Provisioning in Action</a></li>
     <li><a href="#next-steps">Next Steps &amp; Resources</a></li>
   </ol>
@@ -391,20 +392,24 @@
 
 <p>For teams running containerized workloads on Azure Kubernetes Service (AKS), this manual response cycle is a source of alert fatigue, slow recovery times, and inconsistent remediation quality. <strong>Azure SRE Agent</strong> addresses this head-on: it is an AI-powered operations agent that connects to your Azure resources, receives alerts from Azure Monitor, and executes a structured investigate-diagnose-remediate-verify loop &mdash; fully autonomously.</p>
 
-<p>In this post, I'll walk through the complete end-to-end experience: spinning up an AKS cluster with Node Auto-Provisioning (NAP), deploying a realistic demo application, wiring up Azure SRE Agent, and triggering a real OOMKilled incident so you can see the agent resolve it in real time.</p>
+<p>In this post, I'll walk through the complete end-to-end experience: spinning up an AKS cluster with Node Auto-Provisioning (NAP), deploying a realistic demo application, wiring up Azure SRE Agent, and watching it respond to two real production incidents &mdash; fully autonomously.</p>
 
 <div class="metrics-row">
   <div class="metric-card">
-    <div class="metric-value">&lt;2m</div>
-    <div class="metric-label">Alert to Full Recovery</div>
+    <div class="metric-value">~8 min</div>
+    <div class="metric-label">Alert &rarr; Full Recovery (Incident 1)</div>
   </div>
   <div class="metric-card">
     <div class="metric-value">0</div>
     <div class="metric-label">Human Interventions Required</div>
   </div>
   <div class="metric-card">
-    <div class="metric-value">100%</div>
-    <div class="metric-label">Pods Recovered Automatically</div>
+    <div class="metric-value">5</div>
+    <div class="metric-label">Patches Applied (Both Incidents)</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-value"><a href="https://github.com/hailugebru/azure-sre-agents-aks/issues/1" target="_blank" style="color:inherit">Issue #1 &#x2197;</a></div>
+    <div class="metric-label">GitHub Issue Auto-Created</div>
   </div>
 </div>
 
@@ -1141,119 +1146,178 @@
 <span class="number">3.</span> For OOMKilled: correlate NODE_OPTIONS / JVM flags against container memory limits
    before adjusting. Apply the minimum necessary increase.
 <span class="number">4.</span> After any patch, wait for rollout, then verify cluster-wide pod health.
-<span class="number">5.</span> Create a GitHub issue in the infra-ops repo with the incident summary.</pre>
+<span class="number">5.</span> After successful resolution, create a GitHub issue in
+   hailugebru/azure-sre-agents-aks with the incident ID, root cause,
+   patch applied, and a recommendation to update the source manifest in Git.</pre>
+
+<hr>
+<h2 id="github">&#x1F419; Post-Incident GitHub Issue Automation</h2>
+
+<p>With the agent resolving incidents autonomously, the final piece is closing the loop: every autonomous repair should produce a permanent, searchable audit trail in GitHub. There are two ways to connect Azure SRE Agent to GitHub. <strong>Option A</strong> (Resource Mapping) is the quickest path and was used in production to auto-create <a href="https://github.com/hailugebru/azure-sre-agents-aks/issues/1" target="_blank">Issue #1</a>.</p>
+
+<h3>Option A: Resource Mapping &mdash; Quick Setup (used in production)</h3>
+<ol>
+  <li>Go to <strong>Builder &rarr; Resource mapping</strong></li>
+  <li>Find <code>azure-sre-agent-demo-cluster</code> and click it</li>
+  <li>Click <strong>Add repository</strong> and enter <code>https://github.com/hailugebru/azure-sre-agents-aks</code></li>
+  <li><strong>Sign in to GitHub</strong> when prompted (one-time OAuth authorization)</li>
+  <li>Click <strong>Add</strong></li>
+</ol>
+<p>After the one-time sign-in, the agent creates issues automatically as part of every autonomous resolution &mdash; no further human interaction required.</p>
+
+<h3>Option B: GitHub MCP Connector &mdash; Full GitHub API Access</h3>
+<ol>
+  <li>Go to <strong>Builder &rarr; Connectors &rarr; + Add connector &rarr; MCP tab &rarr; GitHub MCP server</strong></li>
+  <li>The portal pre-fills <code>https://api.githubcopilot.com/mcp/</code> and locks <strong>Authentication method</strong> to <strong>Bearer token</strong> &mdash; this is expected. Generate a fine-grained PAT at <code>github.com/settings/tokens</code> with <code>Issues: Read and write</code> scoped to your repo. Paste it as the Bearer token value.</li>
+  <li>Enable tools: <code>create_issue</code> (required), <code>list_issues</code> (recommended)</li>
+</ol>
+
+<div class="table-wrapper">
+<table>
+  <thead><tr><th>Criteria</th><th>Option A (Resource Mapping)</th><th>Option B (MCP Connector)</th></tr></thead>
+  <tbody>
+    <tr><td>Setup time</td><td>~2 minutes</td><td>~10 minutes</td></tr>
+    <tr><td>Auth method</td><td>OAuth (browser-based)</td><td>PAT (Bearer token)</td></tr>
+    <tr><td>Capabilities</td><td>Create issues per resource</td><td>Full GitHub API (issues, code, PRs)</td></tr>
+    <tr><td>Best for</td><td>Simple issue tracking per resource</td><td>Code-aware incident response</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="alert info">
+  <span class="alert-icon">&#x1F419;</span>
+  <div class="alert-content">
+    <strong>Production result:</strong> Using Option A, Azure SRE Agent automatically created <a href="https://github.com/hailugebru/azure-sre-agents-aks/issues/1" target="_blank">GitHub Issue #1</a> at <code>16:01:26 UTC</code> with no human action. The issue includes before/after tables for all 5 patches, post-patch <code>kubectl top</code> output for all 9 pods, and 7 actionable recommendations.
+  </div>
+</div>
 
 <!-- ================================================================ -->
 <!--  STEP 4: IN ACTION                                                -->
 <!-- ================================================================ -->
 <div class="part-divider"><span class="part-badge">Step 4</span><span class="part-line"></span></div>
-<h2 id="in-action">See It in Action: Autonomous OOMKilled Recovery</h2>
+<h2 id="in-action">Two Real Incidents, Zero Escalations</h2>
 
-<p>With everything wired up, let's trigger a real incident. We'll change the <code>order-service</code> memory limit to a value that's incompatible with its Node.js V8 heap configuration, causing it to crash repeatedly with <code>OOMKilled</code>.</p>
+<p>The following two incidents occurred on the same AKS cluster in a single session on April 10, 2026, demonstrating both the alert-driven and chat-driven investigation workflows and two of the most common Kubernetes failure modes: CPU starvation and OOM kill.</p>
 
-<h3>Trigger the incident</h3>
+<h3>&#x1F6A8; Incident 1 &mdash; CPU Starvation &mdash; Alert-Driven (MTTR: ~8 minutes)</h3>
 
-<pre><span class="comment"># Set order-service memory limit to 16Mi — incompatible with 64MB V8 heap</span>
-<span class="prompt">PS&gt; </span>kubectl patch deployment order-service -n pets --type=<span class="string">'json'</span> `
-    -p=<span class="string">'[{"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/memory","value":"16Mi"}]'</span>
+<p><strong>Trigger the incident.</strong> Apply a misconfigured deployment with a 5 millicore CPU limit:</p>
 
-<span class="comment"># Watch pods enter CrashLoopBackOff</span>
+<pre><span class="prompt">PS&gt; </span>kubectl patch deployment makeline-service -n pets --type=<span class="string">'json'</span> `
+    -p=<span class="string">'[
+      {"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/cpu","value":"5m"},
+      {"op":"replace","path":"/spec/template/spec/containers/0/resources/limits/memory","value":"20Mi"}
+    ]'</span>
+
 <span class="prompt">PS&gt; </span>kubectl get pods -n pets -w
 
-<span class="output">NAME                               READY   STATUS             RESTARTS   AGE</span>
-<span class="output">order-service-5f9d44b6c8-4bvsr     0/1     OOMKilled          1          12s</span>
-<span class="output">order-service-5f9d44b6c8-4bvsr     0/1     CrashLoopBackOff   2          28s</span></pre>
+<span class="output">NAME                                  READY   STATUS             RESTARTS   AGE</span>
+<span class="output">makeline-service-59bcdc58fb-845wj     0/1     Error              1          32s</span>
+<span class="output">makeline-service-59bcdc58fb-845wj     0/1     CrashLoopBackOff   1          45s</span></pre>
 
-<p>Within five minutes, Azure Monitor detects the failing pods and fires the Sev1 alert. The SRE Agent begins working immediately.</p>
+<p>Within five minutes, Azure Monitor fires the <code>pod-not-healthy</code> Sev1 alert (Alert ID <code>69e4dbba</code>, fired <code>15:36:15 UTC</code>) and the agent begins working immediately.</p>
 
-<h3>The agent's autonomous response &mdash; T+0s to T+107s</h3>
+<h4>The agent's autonomous investigation timeline</h4>
 
-<div class="timeline">
-  <div class="timeline-step">
-    <div class="timeline-dot blue">1</div>
-    <div class="step-time">T+0s &mdash; Plan</div>
-    <h4>Receive alert, formulate investigation plan</h4>
-    <p>Alert payload received: [Sev1] pod-not-healthy on <code>Azure-SRE-Agent-Demo-Cluster</code>. Agent builds a structured plan: scan all namespaces, prioritise OOMKilled/CrashLoopBackOff, correlate root cause, apply minimal fix, verify recovery.</p>
-  </div>
-  <div class="timeline-step">
-    <div class="timeline-dot blue">2</div>
-    <div class="step-time">T+5s &mdash; Discover</div>
-    <h4>Cluster-wide pod health scan</h4>
-    <p>Connected to the cluster via managed identity. Ran <code>kubectl get pods --all-namespaces</code> and filtered for: <code>OOMKilled</code>, <code>CrashLoopBackOff</code>, <code>ImagePullBackOff</code>, and containers with restarts &gt; 0.</p>
-  </div>
-  <div class="timeline-step">
-    <div class="timeline-dot red">3</div>
-    <div class="step-time">T+10s &mdash; Identify</div>
-    <h4>Two crashing pods found in <code>pets</code> namespace</h4>
-    <p>Identified <code>order-service-5f9d44b6c8-4bvsr</code> and <code>order-service-5f9d44b6c8-fl782</code> with 14 restarts each, <code>Last State: OOMKilled</code>.</p>
-  </div>
-  <div class="timeline-step">
-    <div class="timeline-dot red">4</div>
-    <div class="step-time">T+20s &mdash; Root Cause</div>
-    <h4>Diagnosed: V8 heap incompatible with container memory limit</h4>
-    <p>Correlated four signals: <strong>Exit Code 137</strong> (SIGKILL from cgroup OOM killer), <strong>Last State: OOMKilled</strong>, container memory limit <strong>16Mi</strong>, and environment variable <code>NODE_OPTIONS=--max-old-space-size=64</code>. The V8 heap requires 64 MB &mdash; 4&times; the container budget.</p>
-  </div>
-  <div class="timeline-step">
-    <div class="timeline-dot blue">5</div>
-    <div class="step-time">T+30s &mdash; Remediate</div>
-    <h4>Patched deployment: 16Mi &rarr; 128Mi memory limit</h4>
-    <p>Applied a minimal JSON patch to the <code>order-service</code> deployment. Triggered a zero-downtime rolling update.</p>
-  </div>
-  <div class="timeline-step">
-    <div class="timeline-dot green">6</div>
-    <div class="step-time">T+107s &mdash; Verified</div>
-    <h4>Full recovery confirmed, incident report delivered</h4>
-    <p>Both replacement pods Running 1/1, zero restarts. Cluster-wide sweep: zero unhealthy pods. Structured incident report published to the Incident History blade and a GitHub issue created in the infra-ops repo.</p>
-  </div>
-</div>
-
-<h3>Root cause signals correlated by the agent</h3>
-
-<div class="table-wrapper">
-<table>
-  <thead><tr><th>Signal</th><th>Observed Value</th><th>What It Means</th></tr></thead>
+<div class="table-wrapper"><table>
+  <thead><tr><th>Time</th><th>Phase</th><th>Action</th></tr></thead>
   <tbody>
-    <tr><td>Container memory limit</td><td><span class="badge badge-red">16Mi</span></td><td>Maximum memory before Linux OOM killer terminates the process</td></tr>
-    <tr><td><code>NODE_OPTIONS</code></td><td><span class="badge badge-orange">--max-old-space-size=64</span></td><td>V8 old-generation heap capped at 64 MB &mdash; 4&times; the limit</td></tr>
-    <tr><td>Exit code</td><td><span class="badge badge-red">137</span></td><td>SIGKILL sent by cgroup OOM killer (128 + 9)</td></tr>
-    <tr><td>Pod last state</td><td><span class="badge badge-red">OOMKilled</span></td><td>Kubernetes confirmed the termination reason</td></tr>
+    <tr><td>T+0s</td><td><span class="badge badge-blue">Receive</span></td><td>Alert payload arrives. Agent connects to cluster via managed identity.</td></tr>
+    <tr><td>T+30s</td><td><span class="badge badge-blue">Discover</span></td><td><code>kubectl get pods --all-namespaces</code> &mdash; scans 40+ pods across 6 namespaces</td></tr>
+    <tr><td>T+60s</td><td><span class="badge badge-orange">Identify</span></td><td><code>makeline-service</code>: 1 restart, last state <code>Error</code>, exit code <code>1</code></td></tr>
+    <tr><td>T+90s</td><td><span class="badge badge-red">Root Cause</span></td><td>CPU limit <code>5m</code> + 6&times; startup probe <code>connection refused</code>. Exit code <code>1</code> (not <code>137</code>) rules out OOMKill.</td></tr>
+    <tr><td>T+180s</td><td><span class="badge badge-orange">Expand</span></td><td><code>kubectl top pods</code>: <code>virtual-customer</code>, <code>virtual-worker</code>, and <code>mongodb</code> throttled at 112&ndash;200% of CPU limit</td></tr>
+    <tr><td>T+240s</td><td><span class="badge badge-green">Remediate</span></td><td>4 patches applied sequentially, each rollout monitored before the next</td></tr>
+    <tr><td>T+480s</td><td><span class="badge badge-green">Verified</span></td><td>All 9 pods Running/Ready/0 restarts. Zero unhealthy pods cluster-wide.</td></tr>
   </tbody>
-</table>
-</div>
+</table></div>
 
-<h3>The exact patch applied</h3>
+<h4>Root cause signals correlated</h4>
 
-<pre><span class="comment"># Exact remediation applied by Azure SRE Agent</span>
-<span class="prompt">$ </span>kubectl patch deployment order-service -n pets --type=<span class="string">'json'</span> -p=<span class="string">'[
-    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory",   "value": "128Mi"},
-    {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "64Mi"}
-  ]'</span>
-<span class="success">deployment.apps/order-service patched</span>
+<div class="table-wrapper"><table>
+  <thead><tr><th>Signal</th><th>Value</th><th>Conclusion</th></tr></thead>
+  <tbody>
+    <tr><td>CPU limit</td><td><span class="badge badge-red">5m</span></td><td>Insufficient for Go/Gin service startup</td></tr>
+    <tr><td>Startup probe events</td><td>6&times; <code>dial tcp: connection refused</code></td><td>Service could not bind port under extreme CPU starvation</td></tr>
+    <tr><td>Exit code</td><td><code>1</code></td><td>Process error &mdash; not <code>137</code>, so not an OOMKill</td></tr>
+    <tr><td><code>kubectl top</code> output</td><td>3 pods at 112&ndash;200% of limit</td><td>Cluster-wide CPU pressure contributing to the health alert</td></tr>
+  </tbody>
+</table></div>
 
-<span class="prompt">$ </span>kubectl rollout status deployment/order-service -n pets
-<span class="success">deployment "order-service" successfully rolled out</span></pre>
+<h4>Four patches applied sequentially</h4>
 
-<h3>Before and After</h3>
-<div class="comparison">
-  <div class="comparison-card before">
-    <h4>&#x26A0; Before (Crashing)</h4>
-    <ul>
-      <li>2 pods in CrashLoopBackOff</li>
-      <li>14 restarts each, exit code 137</li>
-      <li>Memory limit: 16Mi</li>
-      <li>V8 heap configured to 64 MB (4&times; limit)</li>
-      <li>order-service unavailable to customers</li>
-    </ul>
-  </div>
-  <div class="comparison-card after">
-    <h4>&#x2705; After (Recovered)</h4>
-    <ul>
-      <li>2 pods Running 1/1, zero restarts</li>
-      <li>Memory limit: 128Mi (V8 heap fits easily)</li>
-      <li>Memory request: 64Mi</li>
-      <li>Cluster-wide: zero unhealthy pods</li>
-      <li>Total time: 1 minute 47 seconds</li>
-    </ul>
+<div class="table-wrapper"><table>
+  <thead><tr><th>Patch</th><th>Target</th><th>Field</th><th>Before</th><th>After</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>makeline-service</td><td><code>limits.cpu</code></td><td><span class="badge badge-red">5m</span></td><td><span class="badge badge-green">50m</span></td></tr>
+    <tr><td>1</td><td>makeline-service</td><td><code>limits.memory</code></td><td><span class="badge badge-red">20Mi</span></td><td><span class="badge badge-green">64Mi</span></td></tr>
+    <tr><td>2</td><td>virtual-customer</td><td><code>limits.cpu</code></td><td><span class="badge badge-red">2m</span></td><td><span class="badge badge-green">10m</span></td></tr>
+    <tr><td>3</td><td>virtual-worker</td><td><code>limits.cpu</code></td><td><span class="badge badge-red">2m</span></td><td><span class="badge badge-green">10m</span></td></tr>
+    <tr><td>4</td><td>mongodb (StatefulSet)</td><td><code>limits.cpu</code></td><td><span class="badge badge-red">25m</span></td><td><span class="badge badge-green">50m</span></td></tr>
+  </tbody>
+</table></div>
+
+<hr>
+
+<h3>&#x1F4AC; Incident 2 &mdash; OOMKilled &mdash; Chat-Driven (MTTR: ~4 minutes)</h3>
+
+<p>Shortly after Incident 1, an engineer noticed <code>order-service</code> was unhealthy. No alert needed &mdash; the agent handles ad-hoc investigations from the chat window too.</p>
+
+<p><strong>Trigger the incident.</strong> Deploy <code>order-service-changed.yaml</code> with a 20Mi memory limit:</p>
+
+<pre><span class="prompt">PS&gt; </span>kubectl apply -f .\manifests\aks-store\order-service-changed.yaml -n pets
+
+<span class="prompt">PS&gt; </span>kubectl get pods -n pets -w
+<span class="output">NAME                               READY   STATUS             RESTARTS   AGE</span>
+<span class="output">order-service-75b944dd4b-m8td6     0/1     OOMKilled          1          18s</span>
+<span class="output">order-service-75b944dd4b-m8td6     0/1     CrashLoopBackOff   4          72s</span></pre>
+
+<p><strong>Chat prompt to the agent:</strong></p>
+<pre><span class="comment">The order-service pod in the pets namespace is not healthy.
+Please investigate, identify the root cause, and fix it.</span></pre>
+
+<h4>Root cause signals correlated</h4>
+<div class="table-wrapper"><table>
+  <thead><tr><th>Signal</th><th>Value</th><th>Conclusion</th></tr></thead>
+  <tbody>
+    <tr><td>Exit code</td><td><span class="badge badge-red">137</span></td><td>SIGKILL from kernel OOM killer &mdash; not a process error</td></tr>
+    <tr><td>Container logs</td><td>Empty &mdash; zero output</td><td>Process killed before Node.js could start</td></tr>
+    <tr><td><code>NODE_OPTIONS</code> in ConfigMap</td><td>Not present</td><td>Not a V8 heap mismatch &mdash; pure container limit issue</td></tr>
+    <tr><td>Memory limit</td><td><span class="badge badge-red">20Mi</span></td><td>12.8&times; below the 50Mi the healthy pod used at runtime</td></tr>
+  </tbody>
+</table></div>
+
+<div class="table-wrapper"><table>
+  <thead><tr><th>Time</th><th>Phase</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td>T+0s</td><td><span class="badge badge-blue">Receive</span></td><td>Runs <code>kubectl describe pod order-service-75b944dd4b-m8td6 -n pets</code></td></tr>
+    <tr><td>T+15s</td><td><span class="badge badge-red">Identify</span></td><td>Last state: <code>OOMKilled</code>, exit code <code>137</code>. Memory limit: <code>20Mi</code></td></tr>
+    <tr><td>T+30s</td><td><span class="badge badge-red">Root Cause</span></td><td>No <code>NODE_OPTIONS</code>. Zero log output. Prior healthy pod baseline: 50Mi at runtime.</td></tr>
+    <tr><td>T+60s</td><td><span class="badge badge-green">Remediate</span></td><td>Patches memory limit <code>20Mi &rarr; 128Mi</code> (2.5&times; the 50Mi runtime baseline)</td></tr>
+    <tr><td>T+240s</td><td><span class="badge badge-green">Verified</span></td><td>New pod Running, 74Mi/128Mi (58% utilization), 0 restarts</td></tr>
+  </tbody>
+</table></div>
+
+<hr>
+
+<h3>&#x1F4CA; Combined Results</h3>
+
+<div class="table-wrapper"><table>
+  <thead><tr><th></th><th>Incident 1</th><th>Incident 2</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Trigger</strong></td><td>Azure Monitor alert (automated)</td><td>Engineer chat (ad-hoc)</td></tr>
+    <tr><td><strong>Failure mode</strong></td><td>CPU starvation &mdash; startup probe timeouts</td><td>OOMKilled &mdash; memory limit too low</td></tr>
+    <tr><td><strong>Exit code</strong></td><td><code>1</code> (process error)</td><td><code>137</code> (SIGKILL)</td></tr>
+    <tr><td><strong>Patches applied</strong></td><td>4 (3 Deployments + 1 StatefulSet)</td><td>1 (Deployment)</td></tr>
+    <tr><td><strong>MTTR</strong></td><td><span class="badge badge-green">~8 minutes</span></td><td><span class="badge badge-green">~4 minutes</span></td></tr>
+    <tr><td><strong>Post-state</strong></td><td>All 9 pods Running, 0 restarts</td><td>All 9 pods Running, 0 restarts</td></tr>
+  </tbody>
+</table></div>
+
+<div class="alert info">
+  <span class="alert-icon">&#x1F419;</span>
+  <div class="alert-content">
+    After verifying Incident 1, the agent automatically created <a href="https://github.com/hailugebru/azure-sre-agents-aks/issues/1" target="_blank">GitHub Issue #1</a> at <code>16:01:26 UTC</code> with no human action &mdash; including before/after tables for all 5 patches and 7 actionable recommendations.
   </div>
 </div>
 
@@ -1264,77 +1328,26 @@
     <ul>
       <li>Alert pages on-call engineer at 2 AM</li>
       <li>Engineer opens laptop, connects to VPN</li>
-      <li>Gets kubeconfig, scans namespaces</li>
-      <li>Reads pod events, looks up exit code 137</li>
-      <li>Decides on fix, applies patch, monitors rollout</li>
+      <li>Gets kubeconfig, scans 40+ pods manually</li>
+      <li>Correlates CPU limits, events, exit codes</li>
+      <li>Applies patches sequentially, monitors rollouts</li>
       <li>Writes incident summary the next morning</li>
-      <li><strong>Typical MTTR: 30&ndash;60 minutes</strong></li>
+      <li><strong>Typical MTTR: 60&ndash;120 minutes</strong></li>
     </ul>
   </div>
   <div class="comparison-card after">
     <h4>Azure SRE Agent (Autonomous Mode)</h4>
     <ul>
-      <li>Alert received — agent starts immediately</li>
+      <li>Alert received &mdash; agent starts immediately</li>
       <li>Already authenticated via managed identity</li>
-      <li>Scans all namespaces in parallel</li>
-      <li>Correlates exit codes, specs, and env vars</li>
-      <li>Applies minimal, targeted, reversible patch</li>
-      <li>Verifies rollout and full cluster health</li>
-      <li><strong>MTTR: 1 minute 47 seconds</strong></li>
+      <li>Scans all 40+ pods across 6 namespaces in ~1 min</li>
+      <li>Structured checklist: limits, events, exit codes, logs</li>
+      <li>Applies 4 targeted patches, monitors each rollout</li>
+      <li>Auto-creates <a href="https://github.com/hailugebru/azure-sre-agents-aks/issues/1" target="_blank">GitHub Issue #1</a> with full report</li>
+      <li><strong>MTTR: ~8 minutes (7&ndash;15&times; faster)</strong></li>
     </ul>
   </div>
 </div>
-
-<!-- PORTAL MOCKUP: Figure 5 — Incident Report -->
-<div class="portal-mockup">
-  <div class="portal-topbar">
-    <div class="portal-topbar-logo"><span></span><span></span><span></span><span></span></div>
-    <span class="portal-topbar-text">Microsoft Azure</span>
-    <div class="portal-topbar-search">&#x1F50D; Search resources, services, and docs (G+/)</div>
-    <div class="portal-topbar-icons">&#x2699; &#x1F514; &#x1F464;</div>
-  </div>
-  <div class="portal-body">
-    <div class="portal-sidebar">
-      <div class="portal-sidebar-icon">&#x2261;</div>
-      <div class="portal-sidebar-icon">&#x2302;</div>
-      <div class="portal-sidebar-icon active">&#x1F916;</div>
-      <div class="portal-sidebar-icon">&#x1F4CA;</div>
-      <div class="portal-sidebar-icon">&#x2638;</div>
-    </div>
-    <div class="portal-main">
-      <div class="portal-breadcrumb">
-        <a href="#">Home</a> <span class="sep">&rsaquo;</span> <a href="#">aks-sre-agent</a> <span class="sep">&rsaquo;</span> Incident History <span class="sep">&rsaquo;</span> INC-2026-0407-001
-      </div>
-      <div class="portal-page-header">
-        <span class="portal-icon">&#x1F4CB;</span>
-        <h2>Incident INC-2026-0407-001</h2>
-      </div>
-      <div class="portal-content">
-        <div class="portal-notification success">&#x2705; <strong>Resolved</strong> &mdash; Alert to resolution: 1m 47s &nbsp;|&nbsp; Mode: Autonomous &nbsp;|&nbsp; Human intervention: None</div>
-        <div class="portal-card">
-          <h4>Summary</h4>
-          <table class="portal-resource-table" style="font-size:13px;">
-            <tbody>
-              <tr><td style="font-weight:600;width:150px;">Alert</td><td>[Sev1] pod-not-healthy</td></tr>
-              <tr><td style="font-weight:600;">Resource</td><td>Azure-SRE-Agent-Demo-Cluster (Azure-SRE-Agent-Demo_RG)</td></tr>
-              <tr><td style="font-weight:600;">Fired</td><td>2026-04-07 21:07:13 UTC</td></tr>
-              <tr><td style="font-weight:600;">Resolved</td><td>2026-04-07 21:09:00 UTC</td></tr>
-              <tr><td style="font-weight:600;">Root Cause</td><td>OOMKilled &mdash; container memory limit (16Mi) incompatible with Node.js V8 heap (64MB via NODE_OPTIONS)</td></tr>
-              <tr><td style="font-weight:600;">Action Taken</td><td>Patched order-service deployment: memory limit 16Mi &rarr; 128Mi, request 8Mi &rarr; 64Mi</td></tr>
-              <tr><td style="font-weight:600;">Affected Pods</td><td>order-service-5f9d44b6c8-4bvsr, order-service-5f9d44b6c8-fl782 (namespace: pets)</td></tr>
-              <tr><td style="font-weight:600;">Post-State</td><td>2/2 pods Running 1/1, 0 restarts. Cluster-wide: 0 unhealthy pods.</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="portal-card">
-          <h4>&#x1F4A1; Recommendation</h4>
-          <p style="font-size:13px;margin:0;">Update the source deployment manifest in Git to persist this memory limit fix. The current runtime patch will be overwritten on the next CI/CD deployment.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<p class="fig">Figure 5 &mdash; The agent's structured incident report, delivered automatically after verification. Alert to full resolution: 1 minute 47 seconds. Human interventions: 0.</p>
 
 <!-- ================================================================ -->
 <!--  BONUS: NAP                                                       -->
@@ -1361,11 +1374,12 @@
 
 <p>In this walkthrough, you:</p>
 <ol>
-  <li>Deployed a production-ready AKS cluster with NAP, Cilium, and KEDA</li>
+  <li>Deployed a production-ready AKS cluster with NAP, Cilium, managed Prometheus, and KEDA</li>
   <li>Deployed the AKS Store Demo application across nine microservices</li>
-  <li>Created an Azure SRE Agent with managed identity, managed resources, and an Azure Monitor trigger</li>
-  <li>Configured an autonomous Incident Response Plan with custom instructions</li>
-  <li>Watched the agent resolve a real OOMKilled incident in under two minutes with zero human intervention</li>
+  <li>Created an Azure SRE Agent with UAMI, managed resources, and an Azure Monitor webhook trigger</li>
+  <li>Configured an autonomous Incident Response Plan with domain-specific custom instructions</li>
+  <li>Watched the agent detect and fix <strong>two real incidents</strong> &mdash; CPU starvation (~8 min MTTR) and OOMKill (~4 min MTTR) &mdash; applying 5 targeted patches with zero human intervention</li>
+  <li>Configured automatic GitHub issue creation to close the loop from runtime patch to tracked manifest recommendation</li>
 </ol>
 
 <p>The key insight isn't just the speed improvement &mdash; it's the <strong>consistency</strong>. Azure SRE Agent runs the same structured methodology every single time: plan, collect, analyze, act, verify, report. It doesn't skip the verification step at 3 AM, and it delivers the incident report before the on-call engineer has finished reading the alert.</p>

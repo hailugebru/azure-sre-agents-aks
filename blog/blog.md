@@ -394,20 +394,6 @@ Please investigate, identify the root cause, and fix it.
 
 ---
 
-### Combined results
-
-| | Incident 1 | Incident 2 |
-|---|---|---|
-| **Trigger** | Azure Monitor alert (automated) | Engineer chat (ad-hoc) |
-| **Failure mode** | CPU starvation — startup probe timeouts | OOMKilled — memory limit too low for Node.js |
-| **Key exit code** | `1` (process error) | `137` (SIGKILL from OOM killer) |
-| **Patches applied** | 4 (3 Deployments + 1 StatefulSet) | 1 (Deployment) |
-| **MTTR** | ~8 minutes | ~4 minutes |
-| **Additional findings** | 3 other pods CPU-throttled at 112–200% | CPU at limit (101m/100m) — flagged for monitoring |
-| **Post-state** | All 9 pods Running, 0 restarts | All 9 pods Running, 0 restarts |
-
-> _Results reflect a single observed lab run. Actual MTTR depends on cluster size, telemetry configuration, and failure type._
-
 ### Automated GitHub issue — [#1](https://github.com/hailugebru/azure-sre-agents-aks/issues/1)
 
 After verifying Incident 1, the agent automatically created [GitHub Issue #1](https://github.com/hailugebru/azure-sre-agents-aks/issues/1) at `16:01:26 UTC` with no human action. The issue includes before/after tables for all 5 patches, post-patch `kubectl top` output for all 9 pods, 7 actionable recommendations, and a deep link to the investigation thread — giving the team everything they need to update the source manifests permanently.

@@ -290,15 +290,6 @@ Within five minutes, Azure Monitor fires the `pod-not-healthy` Sev1 alert (Alert
 | **Expand** | `kubectl top` found 3 more pods CPU-throttled at 112–200% of limit |
 | **Remediate → Verify** | 4 patches applied sequentially; all 9 pods Running/0 restarts cluster-wide |
 
-#### Four patches applied sequentially
-
-| Resource | Type | CPU limit before | CPU limit after | Mem limit before | Mem limit after |
-|---|---|---|---|---|---|
-| `makeline-service` | Deployment | `5m` | `50m` | `20Mi` | `64Mi` |
-| `virtual-customer` | Deployment | `2m` | `10m` | — | — |
-| `virtual-worker` | Deployment | `2m` | `10m` | — | — |
-| `mongodb` | StatefulSet | `25m` | `50m` | — | — |
-
 > _Portal screenshot: Incident History blade showing alert ID `69e4dbba`, Status: Resolved, 4 patches applied, cluster-wide sweep: 0 unhealthy pods._  
 > _(See Figure 5 in the [HTML version](./index.html))_
 
@@ -336,13 +327,6 @@ Please investigate, identify the root cause, and fix it.
 | **Identify** | `kubectl describe` confirmed `OOMKilled`, exit code `137`, memory limit `20Mi` |
 | **Root cause** | Empty container logs (killed before first write) + no `NODE_OPTIONS` in ConfigMap ruled out V8 heap misconfiguration — the `20Mi` limit was 12.8× below the pod's observed 50Mi runtime baseline |
 | **Remediate → Verify** | Memory limit patched `20Mi → 128Mi`; new pod Running at 74Mi/128Mi (58% utilization), 0 restarts |
-
-#### Patch applied
-
-| Field | Before | After | Rationale |
-|---|---|---|---|
-| Memory limit | `20Mi` | `128Mi` | Conservative headroom above the observed 50Mi runtime baseline — stabilizes workload while preserving efficiency |
-| Memory request | `10Mi` | `50Mi` | Aligned to observed runtime usage |
 
 ---
 

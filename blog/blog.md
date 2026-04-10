@@ -297,26 +297,9 @@ For AKS pod health alerts in the pets namespace:
 
 With the agent resolving incidents autonomously, the final piece is closing the loop: every autonomous repair should produce a permanent, searchable audit trail in GitHub — eliminating manual post-mortem paperwork.
 
-The **built-in GitHub connector** (Option A) supports OAuth and PAT authentication, and can read repository code, create issues, comment on pull requests, and trigger workflows. For most teams, this is the simplest and most maintainable path. The **GitHub MCP connector** (Option B) supports PAT-based Bearer token authentication only — OAuth is not supported for MCP connectors.
+The **GitHub MCP connector** uses PAT-based Bearer token authentication (OAuth is not supported for MCP connectors). It gives the agent full GitHub API access — issue creation, code search, commit history, and PR analysis.
 
-There are two setup paths:
-
-#### Option A: Built-in GitHub Connector via Resource Mapping — Recommended
-
-Resource Mapping links a GitHub repository to a specific Azure resource. The agent uses the built-in `CreateGithubIssue` tool — no subagent or MCP connector needed.
-
-1. In the agent portal, go to **Monitor → Resource mapping**.
-2. Find `azure-sre-agent-demo-cluster` in the list and click it.
-3. Click **Add repository** and enter `https://github.com/hailugebru/azure-sre-agents-aks`.
-4. **Sign in to GitHub** when prompted (one-time OAuth authorization).
-5. Click **Add**.
-
-That’s it. After the one-time sign-in, the agent creates issues automatically as part of every autonomous resolution — no further human interaction required.
-
-
-#### Option B: GitHub MCP Connector — Advanced / Optional
-
-Use this path only when you specifically need MCP tool semantics or partner-tool style workflows beyond what the built-in connector provides. Issue creation, code search, and PR comments are all supported through Option A — use MCP when you have a specific integration requirement beyond those capabilities.
+#### GitHub MCP Connector Setup
 
 1. Go to **Builder > Connectors > + Add connector > MCP tab > GitHub MCP server**.
 2. The portal pre-fills the URL as `https://api.githubcopilot.com/mcp/` and locks **Authentication method** to **Bearer token**.
@@ -342,13 +325,11 @@ Use this path only when you specifically need MCP tool semantics or partner-tool
 > _Portal screenshot: MCP connector list showing `github-mcp` with status **Connected** and tools `create_issue`, `list_issues` selected._  
 > _(See Figure 6 in the [HTML version](./index.html))_
 
-#### 2. Create the `github-issue-tracker` subagent
+#### Create the `github-issue-tracker` subagent
 
 A dedicated subagent keeps GitHub write access scoped and auditable. The main agent invokes it only after a successful resolution.
 
 1. Go to **Builder > Subagent builder** and select **+ Create subagent**..
-
-> **Option A vs. Option B:** For most teams, Option A covers the common case — issue creation tied to a specific Azure resource, with OAuth or PAT, no MCP setup required. Use Option B only when you specifically need MCP-based GitHub tool integration.
 
 #### What the auto-created issue looks like
 

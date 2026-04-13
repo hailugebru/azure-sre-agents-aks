@@ -123,6 +123,15 @@ kubectl describe nodepool default
 - Applies an `AKSNodeClass` for **Azure Linux** (CBL-Mariner)
 - Updates the ARM NodePool to use the Azure Linux node class
 
+> **Advanced: ARM64 Node Pools**  
+> Steps 5 and 6 bias NAP toward ARM64 Azure Linux nodes for cost-efficient scale-out. NAP and Azure SRE Agent are complementary but separate — NAP manages infrastructure capacity, the agent investigates and remediates incidents. To apply:
+> ```powershell
+> .\05-arm-nodepool.ps1    # apply ARM64 NodePool preference
+> .\06-arm-nodepool-v2.ps1 # add Azure Linux AKSNodeClass
+> kubectl get nodepool
+> kubectl describe nodepool default
+> ```
+
 ---
 
 ### Step 7 — Setup KEDA Scaler

@@ -200,6 +200,37 @@ Replace instruction 5 with:
 
 ---
 
+## Try It Yourself
+
+If you are coming from the blog post, this README is the full setup appendix.
+
+1. Access Azure SRE Agent.
+2. Clone the demo repo and run the setup scripts against your own subscription.
+3. Start with `Reader + Review` on a non-production resource group.
+4. Expand to `Privileged + Autonomous` only after validating the agent's reasoning and remediation quality in your environment.
+
+## Full Setup Details
+
+This README contains the complete AKS deployment steps, connector configuration, and post-incident artifact setup used in the blog demo:
+
+- AKS cluster + NAP setup
+- KEDA scaler setup
+- Azure SRE Agent role assignments
+- GitHub connector and issue automation
+- Teams connector configuration
+
+### Resources
+
+| Resource | Link |
+|---|---|
+| Demo repository | [github.com/hailugebru/azure-sre-agents-aks](https://github.com/hailugebru/azure-sre-agents-aks) |
+| Azure SRE Agent docs | [learn.microsoft.com/azure/sre-agent](https://learn.microsoft.com/azure/sre-agent/) |
+| AKS Store Demo | [github.com/Azure-Samples/aks-store-demo](https://github.com/Azure-Samples/aks-store-demo) |
+| Node Auto-Provisioning | [learn.microsoft.com/azure/aks/node-autoprovision](https://learn.microsoft.com/azure/aks/node-autoprovision) |
+| KEDA on AKS | [learn.microsoft.com/azure/aks/keda-about](https://learn.microsoft.com/azure/aks/keda-about) |
+
+---
+
 ## Cleanup
 
 To delete all Azure resources when done:

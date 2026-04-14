@@ -152,7 +152,73 @@ kubectl exec rabbitmq-0 -n pets -- rabbitmqctl list_queues
 
 ---
 
-### Step 8 — Configure GitHub Post-Incident Issue Automation (Portal)
+### Step 8 — Configure Azure SRE Agent (Portal)
+
+This step is performed in the Azure portal at **[sre.azure.com](https://sre.azure.com)**.
+
+Azure SRE Agent configuration for this demo came down to four things: **scope**, **permissions**, **incident intake**, and **response mode**.
+
+**A — Create the agent and scope it correctly**
+
+1. Create an Azure SRE Agent resource and scope it to the demo resource group.
+2. During deployment, Azure SRE Agent creates two managed identities:
+    - a **user-assigned managed identity (UAMI)** used for RBAC and connector access
+    - a system-assigned identity used internally by the service
+3. Use the **UAMI** for the role assignments and connector setup below.
+4. Add the demo resource group as a **managed resource** so the agent can investigate resources within that scope.
+
+**B — Grant scenario-specific AKS access**
+
+Core monitoring roles are assigned during setup. For this demo, I added AKS-specific rights so the agent could complete remediation end to end. Treat these as **scenario-specific**, not a default production baseline.
+
+```bash
+az role assignment create \
+   --assignee "<uami-client-id>" \
+   --role "Azure Kubernetes Service Cluster Admin Role" \
+   --scope "/subscriptions/<sub-id>/resourcegroups/Azure-SRE-Agent-Demo_RG"
+
+az role assignment create \
+   --assignee "<uami-client-id>" \
+   --role "Azure Kubernetes Service Contributor Role" \
+   --scope "/subscriptions/<sub-id>/resourcegroups/Azure-SRE-Agent-Demo_RG"
+```
+
+**C — Connect Azure Monitor as the incident platform**
+
+1. In Azure SRE Agent, configure **Azure Monitor** as the incident platform.
+2. Copy the generated webhook URL.
+3. Route the AKS alert to that webhook through an Azure Monitor **Action Group**.
+
+This distinction matters: Azure Monitor handles how incidents **enter** the workflow, while connectors such as GitHub and Teams extend the workflow **outward** for tracking and communication.
+
+**D — Choose permission level and run mode deliberately**
+
+Use the safest rollout path:
+
+```text
+Start:   Reader + Review
+Then:    Privileged + Review
+Finally: Privileged + Autonomous for narrow, trusted incident paths
+```
+
+For this demo, I used broader permissions and `Autonomous` mode on a dedicated lab resource group so the workflow could run end to end without manual approval gates.
+
+**E — Add custom instructions for AKS pod-health incidents**
+
+These instructions shape the workflow, but they do not replace RBAC, telemetry quality, or tool availability:
+
+```text
+For AKS pod health alerts in the pets namespace:
+1. Scan all namespaces for unhealthy pods first.
+2. Prioritise OOMKilled and CrashLoopBackOff.
+3. For OOMKilled: correlate NODE_OPTIONS / JVM flags against container memory limits before adjusting.
+4. After any patch, wait for rollout, then verify cluster-wide pod health.
+5. After successful resolution, create a GitHub issue with the incident ID, root cause, patch applied, and a recommendation to update the source manifest in Git.
+```
+
+---
+
+### Step 9 — Configure GitHub Post-Incident Issue Automation (Portal)
 
 This step is performed in the Azure portal at **[sre.azure.com](https://sre.azure.com)**.  
 Run the helper script first to print the configuration checklist:
@@ -197,6 +263,27 @@ Replace instruction 5 with:
 
 > **Verify:** After running the OOMKilled demo (Step 3 → Step 4), check  
 > `https://github.com/hailugebru/azure-sre-agents-aks/issues` for the auto-created issue.
+
+> **Optional handoff:** The generated GitHub issue can be assigned to a GitHub agent, which can use the issue body, comments, and an additional prompt to begin the engineering follow-up work.
+
+---
+
+### Step 10 — Configure Teams Notifications (Portal)
+
+Use the Teams connector when you want real-time visibility during an autonomous run.
+
+1. Go to **Builder > Connectors > + Add connector**.
+2. Select **Microsoft Teams** and complete the sign-in flow.
+3. Choose the target team and channel for incident updates.
+4. Enable the connector for the Azure SRE Agent workflow.
+
+In this demo, Teams carried three milestone updates during the incident:
+
+1. investigation started
+2. root cause and remediation identified
+3. incident resolved
+
+Teams provided real-time coordination for the on-call team, while GitHub captured the durable engineering follow-up.
 
 ---
 

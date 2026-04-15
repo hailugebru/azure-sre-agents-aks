@@ -17,6 +17,25 @@ This folder contains PowerShell scripts to deploy an AKS cluster with **Node Aut
    az login
    ```
 
+## Minimal Setup
+
+If you are coming from the blog post and want the shortest path into the demo, start here.
+
+> **Demo repository:** [github.com/hailugebru/azure-sre-agents-aks](https://github.com/hailugebru/azure-sre-agents-aks)
+
+**Prerequisites**
+- Azure subscription with AKS deployment permissions
+- Azure CLI with `aks-preview`
+- Access to Azure SRE Agent
+
+```powershell
+git clone https://github.com/hailugebru/azure-sre-agents-aks
+cd azure-sre-agents-aks
+notepad 00-variables.ps1
+```
+
+That is enough to get the environment variables in place and continue with the full setup steps below.
+
 ## Step-by-Step Instructions
 
 Run each script **in order** from this folder. Each step depends on the previous one.
@@ -265,6 +284,18 @@ Replace instruction 5 with:
 > `https://github.com/hailugebru/azure-sre-agents-aks/issues` for the auto-created issue.
 
 > **Optional handoff:** The generated GitHub issue can be assigned to a GitHub agent, which can use the issue body, comments, and an additional prompt to begin the engineering follow-up work.
+
+**D — Optional: Continue from issue to pull request**
+
+If you assign the generated GitHub issue to a GitHub agent, the workflow can continue beyond issue creation:
+
+1. The GitHub agent reads the **issue description**, any **comments**, and any **additional prompt** you provide.
+2. It analyzes the repository against the incident context and proposed remediation.
+3. It can then open a **draft pull request** for your review so the source manifests reflect the approved hotfix.
+
+In this demo, that handoff produced a draft PR to align the `order-service` manifests with the memory remediation identified during the incident, so the repo would not drift from the in-cluster fix.
+
+That is the end-to-end loop this setup enables: Azure SRE Agent handles live-site detection and mitigation, GitHub captures the engineering artifact, and the GitHub agent can carry the work forward into a reviewable code change.
 
 ---
 
